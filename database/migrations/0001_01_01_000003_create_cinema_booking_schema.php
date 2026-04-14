@@ -173,7 +173,7 @@ return new class extends Migration
                 $table->foreignId('showtime_id')->constrained('showtimes', 'showtime_id')->cascadeOnDelete();
                 $table->foreignId('seat_id')->constrained('seats', 'seat_id')->cascadeOnDelete();
                 $table->string('ticket_code', 50)->unique();
-                $table->string('qr_code', 255)->unique();
+                $table->string('qr_code', 180)->unique();
                 $table->decimal('ticket_price', 10, 2)->default(0);
                 $table->string('status', 50)->default('booked');
                 $table->timestamps();
