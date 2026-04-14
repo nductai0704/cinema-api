@@ -16,14 +16,19 @@ RUN docker-php-ext-install zip
 # Cài composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy project vào container
+# Copy project
 COPY . .
 
-# Cài dependencies Laravel
+# Cài Laravel packages
 RUN composer install --optimize-autoloader --no-dev
 
-# Port chạy Laravel
+# Set quyền Laravel
+RUN chmod -R 777 storage bootstrap/cache
+
+# QUAN TRỌNG: chuyển vào thư mục public
+WORKDIR /app/public
+
 EXPOSE 8000
 
-# Chạy Laravel
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Chạy từ public/index.php
+CMD php -S 0.0.0.0:8000 index.php
