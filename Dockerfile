@@ -2,33 +2,41 @@ FROM php:8.4-cli
 
 WORKDIR /app
 
-# Cài thư viện cần thiết
+# Cài thư viện hệ thống
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
-    libzip-dev \
-    zip \
-    curl
+    curl \
+    gnupg \
+    apt-transport-https \
+    unixodbc-dev
 
-# Cài extension zip
-RUN docker-php-ext-install zip
+# Cài Microsoft ODBC Driver cho SQL Server
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/debian/12/prod.list \
+    > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y msodbcsql18
+
+# Cài sqlsrv extensions
+RUN pecl install sqlsrv pdo_sqlsrv \
+    && docker-php-ext-enable sqlsrv pdo_sqlsrv
 
 # Cài composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy project
+# Copy source
 COPY . .
 
-# Cài Laravel packages
+# Cài package Laravel
 RUN composer install --optimize-autoloader --no-dev
 
-# Set quyền Laravel
+# Quyền Laravel
 RUN chmod -R 777 storage bootstrap/cache
 
-# QUAN TRỌNG: chuyển vào thư mục public
+# Chạy từ public
 WORKDIR /app/public
 
 EXPOSE 8000
 
-# Chạy từ public/index.php
 CMD php -S 0.0.0.0:8000 index.php
