@@ -38,6 +38,40 @@ class Movie extends Model
         'rating' => 'decimal:1',
     ];
 
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('active', function ($query) {
+            $query->where('status', '!=', 'inactive');
+        });
+    }
+
+    /**
+     * Get the movie's status based on release and end dates.
+     */
+    public function getDisplayStatusAttribute(): string
+    {
+        $now = now()->startOfDay();
+        $releaseDate = $this->release_date ? $this->release_date->startOfDay() : null;
+        $endDate = $this->end_date ? $this->end_date->startOfDay() : null;
+
+        if (!$releaseDate || !$endDate) {
+            return 'Không xác định';
+        }
+
+        if ($now->lt($releaseDate)) {
+            return 'Sắp chiếu';
+        }
+
+        if ($now->gt($endDate)) {
+            return 'Ngưng chiếu';
+        }
+
+        return 'Đang chiếu';
+    }
+
     public function genres()
     {
         return $this->belongsToMany(Genre::class, 'movie_genres', 'movie_id', 'genre_id');

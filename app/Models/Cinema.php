@@ -22,6 +22,11 @@ class Cinema extends Model
         'status',
     ];
 
+    public function region()
+    {
+        return $this->belongsTo(Region::class, 'region_id', 'region_id');
+    }
+
     public function rooms()
     {
         return $this->hasMany(Room::class, 'cinema_id', 'cinema_id');

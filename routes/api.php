@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\AdminCinemaController;
+use App\Http\Controllers\Admin\CinemaController as AdminCinemaController;
+use App\Http\Controllers\Admin\MovieController as AdminMovieController;
 use App\Http\Controllers\Api\AdminComboController;
 use App\Http\Controllers\Api\AdminGenreController;
-use App\Http\Controllers\Api\AdminMovieController;
 use App\Http\Controllers\Api\AdminRoomController;
 use App\Http\Controllers\Api\AdminShowtimeController;
 use App\Http\Controllers\Api\AdminUserController;
@@ -42,7 +42,7 @@ Route::prefix('v1')->group(function () {
     Route::get('genres', [GenreController::class, 'index']);
     Route::get('genres/{genre_id}', [GenreController::class, 'show']);
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'account_status'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('users/me', [UserController::class, 'me']);
         Route::put('users/me', [UserController::class, 'update']);
@@ -71,10 +71,21 @@ Route::prefix('v1')->group(function () {
             Route::patch('bookings/{booking_id}', [StaffBookingController::class, 'update']);
         });
 
-        Route::middleware('admin')->prefix('admin')->group(function () {
-            Route::apiResource('movies', AdminMovieController::class);
+        Route::middleware('super_admin')->prefix('admin')->group(function () {
+            Route::get('cinemas', [AdminCinemaController::class, 'index']);
+            Route::post('cinemas', [AdminCinemaController::class, 'store']);
+            Route::get('cinemas/{cinema}', [AdminCinemaController::class, 'show']);
+            Route::put('cinemas/{cinema}', [AdminCinemaController::class, 'update']);
+            Route::patch('cinemas/{cinema}/status', [AdminCinemaController::class, 'changeStatus']);
+
+            Route::apiResource('movies', AdminMovieController::class)->except(['destroy']);
+            
+            Route::apiResource('regions', \App\Http\Controllers\Admin\RegionController::class);
+            
+            Route::apiResource('managers', \App\Http\Controllers\Admin\ManagerAccountController::class);
+            Route::patch('managers/{manager}/status', [\App\Http\Controllers\Admin\ManagerAccountController::class, 'toggleStatus']);
+
             Route::apiResource('genres', AdminGenreController::class);
-            Route::apiResource('managers', AdminUserController::class);
         });
     });
 });
