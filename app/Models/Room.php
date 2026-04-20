@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCinema;
 
 class Room extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCinema;
 
     protected $table = 'rooms';
     protected $primaryKey = 'room_id';

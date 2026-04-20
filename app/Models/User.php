@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Traits\BelongsToCinema;
 
 #[Fillable([
     'username',
@@ -24,7 +25,7 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password_hash', 'remember_token'])]
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, BelongsToCinema;
 
     protected $table = 'users';
     protected $primaryKey = 'user_id';

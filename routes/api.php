@@ -57,19 +57,7 @@ Route::prefix('v1')->group(function () {
         Route::post('bookings/{booking_id}/payment', [PaymentController::class, 'store']);
         Route::get('bookings/{booking_id}/payment', [PaymentController::class, 'show']);
 
-        Route::middleware('manager')->prefix('manager')->group(function () {
-            Route::apiResource('staff', ManagerStaffController::class);
-            Route::apiResource('rooms', ManagerRoomController::class);
-            Route::apiResource('showtimes', ManagerShowtimeController::class);
-            Route::get('rooms/{room_id}/seats', [ManagerSeatController::class, 'index']);
-            Route::post('rooms/{room_id}/seats/bulk', [ManagerSeatController::class, 'bulkStore']);
-        });
-
-        Route::middleware('staff')->prefix('staff')->group(function () {
-            Route::get('bookings', [StaffBookingController::class, 'index']);
-            Route::get('bookings/{booking_id}', [StaffBookingController::class, 'show']);
-            Route::patch('bookings/{booking_id}', [StaffBookingController::class, 'update']);
-        });
+        // Các route Staff (Nhân viên) sẽ được chuyển xuống dưới cùng để thống nhất
 
         Route::middleware('super_admin')->prefix('admin')->group(function () {
             Route::get('cinemas', [AdminCinemaController::class, 'index']);
@@ -85,7 +73,32 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('managers', \App\Http\Controllers\Admin\ManagerAccountController::class);
             Route::patch('managers/{manager}/status', [\App\Http\Controllers\Admin\ManagerAccountController::class, 'toggleStatus']);
 
+            Route::apiResource('combos', \App\Http\Controllers\Api\AdminComboController::class);
             Route::apiResource('genres', AdminGenreController::class);
+        });
+        // ==========================================
+        // ROUTES DÀNH CHO MANAGER (QUẢN LÝ RẠP)
+        // ==========================================
+        Route::middleware(['account_status'])->prefix('manager')->group(function () {
+            Route::apiResource('rooms', \App\Http\Controllers\Manager\ManagerRoomController::class);
+            Route::get('rooms/{roomId}/seats', [\App\Http\Controllers\Manager\ManagerSeatController::class, 'index']);
+            Route::post('rooms/{roomId}/seats/bulk', [\App\Http\Controllers\Manager\ManagerSeatController::class, 'bulkStore']);
+
+            Route::apiResource('showtimes', \App\Http\Controllers\Manager\ManagerShowtimeController::class);
+            Route::apiResource('staffs', \App\Http\Controllers\Manager\ManagerStaffController::class);
+            Route::apiResource('news', \App\Http\Controllers\Manager\ManagerNewsController::class);
+            
+            Route::get('combos', [\App\Http\Controllers\Manager\ManagerComboController::class, 'index']);
+            Route::put('combos/{comboId}', [\App\Http\Controllers\Manager\ManagerComboController::class, 'updateSetting']);
+        });
+
+        // ==========================================
+        // ROUTES DÀNH CHO STAFF (NHÂN VIÊN BÁN VÉ)
+        // ==========================================
+        Route::middleware(['account_status'])->prefix('staff')->group(function () {
+            Route::get('bookings', [\App\Http\Controllers\Api\StaffBookingController::class, 'index']);
+            Route::get('bookings/{booking_id}', [\App\Http\Controllers\Api\StaffBookingController::class, 'show']);
+            Route::patch('bookings/{booking_id}', [\App\Http\Controllers\Api\StaffBookingController::class, 'update']);
         });
     });
 });

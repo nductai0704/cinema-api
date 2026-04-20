@@ -4,10 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCinema;
+use Illuminate\Database\Eloquent\Builder;
 
 class Seat extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCinema;
+
+    public static function applyCinemaScope(Builder $builder, $cinemaId)
+    {
+        $builder->whereHas('room', function ($query) use ($cinemaId) {
+            $query->where('cinema_id', $cinemaId);
+        });
+    }
 
     protected $table = 'seats';
     protected $primaryKey = 'seat_id';

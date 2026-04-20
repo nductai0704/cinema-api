@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use App\Traits\BelongsToCinema;
 
 class Showtime extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCinema;
 
     protected $table = 'showtimes';
     protected $primaryKey = 'showtime_id';
@@ -17,6 +18,7 @@ class Showtime extends Model
     protected $fillable = [
         'movie_id',
         'room_id',
+        'cinema_id',
         'show_date',
         'start_time',
         'end_time',
@@ -51,12 +53,14 @@ class Showtime extends Model
 
     public function getStartDateTimeAttribute()
     {
-        return Carbon::parse("{$this->show_date} {$this->start_time}");
+        $date = $this->show_date instanceof \Carbon\Carbon ? $this->show_date->toDateString() : $this->show_date;
+        return Carbon::parse("{$date} {$this->start_time}");
     }
 
     public function getEndDateTimeAttribute()
     {
-        return Carbon::parse("{$this->show_date} {$this->end_time}");
+        $date = $this->show_date instanceof \Carbon\Carbon ? $this->show_date->toDateString() : $this->show_date;
+        return Carbon::parse("{$date} {$this->end_time}");
     }
 
     public function getSessionLabelAttribute()
