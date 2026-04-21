@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Tạo 4 Roles tiêu chuẩn
-        Role::firstOrCreate(['role_name' => 'admin'], ['description' => 'Quản trị viên toàn hệ thống']);
+        $adminRole = Role::firstOrCreate(['role_name' => 'admin'], ['description' => 'Quản trị viên toàn hệ thống']);
         Role::firstOrCreate(['role_name' => 'manager'], ['description' => 'Quản lý rạp']);
         Role::firstOrCreate(['role_name' => 'staff'], ['description' => 'Nhân viên bán vé']);
         Role::firstOrCreate(['role_name' => 'customer'], ['description' => 'Khách hàng xem phim']);
