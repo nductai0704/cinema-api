@@ -28,16 +28,16 @@ Route::prefix('v1')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 
+    // ==========================================
+    // CUSTOMER PUBLIC ROUTES (PHASE 1)
+    // ==========================================
+    Route::get('movies', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getMovies']);
+    Route::get('movies/{id}', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getMovieDetail']);
+    Route::get('movies/{id}/showtimes', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getShowtimesByMovie']);
+    Route::get('showtimes/{id}/layout', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getRoomLayout']);
+
     Route::get('cinemas', [CinemaController::class, 'index']);
     Route::get('cinemas/{cinema_id}', [CinemaController::class, 'show']);
-    Route::get('movies', [MovieController::class, 'index']);
-    Route::get('movies/{movie_id}', [MovieController::class, 'show']);
-    Route::get('movies/{movie_id}/showtimes', [MovieController::class, 'showtimes']);
-    Route::get('showtimes', [ShowtimeController::class, 'index']);
-    Route::get('showtimes/{showtime_id}', [ShowtimeController::class, 'show']);
-    Route::get('showtimes/{showtime_id}/seats', [ShowtimeController::class, 'seats']);
-    Route::get('showtimes/{showtime_id}/availability', [ShowtimeController::class, 'availability']);
-
     Route::get('combos', [ComboController::class, 'index']);
     Route::get('genres', [GenreController::class, 'index']);
     Route::get('genres/{genre_id}', [GenreController::class, 'show']);
@@ -51,11 +51,14 @@ Route::prefix('v1')->group(function () {
         Route::get('showtimes/{showtime_id}/holds', [SeatHoldController::class, 'index']);
         Route::delete('holds/{hold_id}', [SeatHoldController::class, 'destroy']);
 
-        Route::post('bookings', [BookingController::class, 'store']);
-        Route::get('bookings/{booking_id}', [BookingController::class, 'show']);
         Route::get('users/me/bookings', [BookingController::class, 'userBookings']);
-        Route::post('bookings/{booking_id}/payment', [PaymentController::class, 'store']);
-        Route::get('bookings/{booking_id}/payment', [PaymentController::class, 'show']);
+        
+        // ==========================================
+        // CUSTOMER BOOKING FLOW (PHASE 2)
+        // ==========================================
+        Route::post('holds', [\App\Http\Controllers\Api\CustomerBookingController::class, 'holdSeats']);
+        Route::post('bookings', [\App\Http\Controllers\Api\CustomerBookingController::class, 'createBooking']);
+        Route::post('bookings/{bookingId}/confirm', [\App\Http\Controllers\Api\CustomerBookingController::class, 'confirmPayment']);
 
         // Các route Staff (Nhân viên) sẽ được chuyển xuống dưới cùng để thống nhất
 
