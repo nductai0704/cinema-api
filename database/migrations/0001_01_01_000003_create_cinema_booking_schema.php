@@ -11,6 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasTable('regions')) {
+            Schema::create('regions', function (Blueprint $table) {
+                $table->id('region_id');
+                $table->string('city', 100);
+                $table->string('district', 100);
+                $table->timestamps();
+            });
+        }
+
         if (! Schema::hasTable('roles')) {
             Schema::create('roles', function (Blueprint $table) {
                 $table->id('role_id');
@@ -25,6 +34,7 @@ return new class extends Migration
             Schema::create('cinemas', function (Blueprint $table) {
                 $table->id('cinema_id');
                 $table->string('cinema_name', 255);
+                $table->foreignId('region_id')->nullable()->constrained('regions', 'region_id')->nullOnDelete();
                 $table->string('address', 255)->nullable();
                 $table->string('city', 100)->nullable();
                 $table->string('district', 100)->nullable();
@@ -231,5 +241,6 @@ return new class extends Migration
         });
         Schema::dropIfExists('cinemas');
         Schema::dropIfExists('roles');
+        Schema::dropIfExists('regions');
     }
 };
