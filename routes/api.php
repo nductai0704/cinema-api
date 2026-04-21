@@ -28,18 +28,25 @@ Route::prefix('v1')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 
-    // SIÊU NÚT BẤM: Chạy Migration & Seeder từ trình duyệt
+    // SIÊU NÚT BẤM V2: Fresh Migrate & Seed (Xoá sạch và xây lại)
     Route::get('setup-database', function() {
         try {
-            echo "Đang khởi tạo danh sách bảng...<br>";
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            // Bước 1: Xoá sạch và tạo lại toàn bộ bảng
+            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
             
-            echo "Đang nạp dữ liệu mẫu (Seeder)...<br>";
+            // Bước 2: Nạp lại dữ liệu Admin/Role mẫu
             \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
             
-            return "CHÚC MỪNG! Toàn bộ bảng và dữ liệu đã được nạp xong. Bạn có thể sử dụng API ngay bây giờ.";
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Hệ thống đã được làm mới hoàn toàn! Bảng "regions" và dữ liệu Admin đã sẵn sàng.',
+                'admin_account' => [
+                    'username' => 'admin',
+                    'password' => '123456'
+                ]
+            ]);
         } catch (\Exception $e) {
-            return "LỖI: " . $e->getMessage();
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     });
 
