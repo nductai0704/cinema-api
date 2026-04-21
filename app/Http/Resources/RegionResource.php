@@ -14,6 +14,8 @@ class RegionResource extends JsonResource
             'city' => $this->city,
             'district' => $this->district,
             'full_location' => "{$this->district}, {$this->city}",
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
     }
 }
