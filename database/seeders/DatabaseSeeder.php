@@ -18,11 +18,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Tạo 4 Roles tiêu chuẩn
-        $adminRole = Role::firstOrCreate(['role_name' => 'admin'], ['description' => 'Quản trị viên toàn hệ thống']);
-        Role::firstOrCreate(['role_name' => 'manager'], ['description' => 'Quản lý rạp']);
-        Role::firstOrCreate(['role_name' => 'staff'], ['description' => 'Nhân viên bán vé']);
-        Role::firstOrCreate(['role_name' => 'customer'], ['description' => 'Khách hàng xem phim']);
+        // 1. Tạo 4 Roles tiêu chuẩn với ID cố định (Khớp với local MySQL)
+        $adminRole = Role::updateOrCreate(['role_id' => 1], ['role_name' => 'admin', 'description' => 'Quản trị viên toàn hệ thống']);
+        Role::updateOrCreate(['role_id' => 2], ['role_name' => 'manager', 'description' => 'Quản lý rạp']);
+        Role::updateOrCreate(['role_id' => 3], ['role_name' => 'staff', 'description' => 'Nhân viên bán vé']);
+        Role::updateOrCreate(['role_id' => 4], ['role_name' => 'customer', 'description' => 'Khách hàng xem phim']);
 
         // 2. Tạo Admin tiêu chuẩn
         User::updateOrCreate(
