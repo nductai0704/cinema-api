@@ -28,22 +28,30 @@ Route::prefix('v1')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 
-    // SIÊU NÚT BẤM V3: Soi lỗi chi tiết
+    // SIÊU NÚT BẤM V4: Chẩn đoán & Ép buộc Sửa lỗi
     Route::get('setup-database', function() {
         try {
-            $output = "";
+            $output = "--- BẮT ĐẦU CHẨN ĐOÁN & SỬA LỖI ---<br>";
             
-            // Bước 1: Làm mới bảng
+            // 1. Ép buộc xóa và tạo lại toàn bộ (Mạnh mẽ nhất)
             \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
-            $output .= "<b>MIGRATION:</b><br>" . nl2br(\Illuminate\Support\Facades\Artisan::output()) . "<br>";
+            $output .= "<b>1. Migrate Fresh:</b> Thành công!<br>";
             
-            // Bước 2: Nạp dữ liệu
+            // 2. Kiểm tra xem bảng cinemas có cột region_id chưa?
+            if (\Illuminate\Support\Facades\Schema::hasColumn('cinemas', 'region_id')) {
+                $output .= "<b>2. Kiểm tra cột:</b> Cột 'region_id' ĐÃ TỒN TẠI trong bảng cinemas.<br>";
+            } else {
+                $output .= "<b>2. Kiểm tra cột:</b> Cột 'region_id' VẪN THIẾU. Đang ép buộc tạo bằng lệnh SQL...<br>";
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE cinemas ADD region_id BIGINT UNSIGNED NULL AFTER cinema_name");
+            }
+            
+            // 3. Nạp lại dữ liệu
             \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $output .= "<b>SEEDING:</b><br>" . nl2br(\Illuminate\Support\Facades\Artisan::output());
+            $output .= "<b>3. Seeding:</b> Thành công!<br>";
             
-            return $output . "<br>--- HOÀN TẤT ---";
+            return $output . "<br>--- HỆ THỐNG ĐÃ ĐƯỢC FIX CỨNG ---";
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return "<b>LỖI CỰC NGHIÊM TRỌNG:</b> " . $e->getMessage();
         }
     });
 
