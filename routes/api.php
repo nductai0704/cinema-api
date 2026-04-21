@@ -28,23 +28,20 @@ Route::prefix('v1')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 
-    // SIÊU NÚT BẤM V2: Fresh Migrate & Seed (Xoá sạch và xây lại)
+    // SIÊU NÚT BẤM V3: Soi lỗi chi tiết
     Route::get('setup-database', function() {
         try {
-            // Bước 1: Xoá sạch và tạo lại toàn bộ bảng
+            $output = "";
+            
+            // Bước 1: Làm mới bảng
             \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+            $output .= "<b>MIGRATION:</b><br>" . nl2br(\Illuminate\Support\Facades\Artisan::output()) . "<br>";
             
-            // Bước 2: Nạp lại dữ liệu Admin/Role mẫu
+            // Bước 2: Nạp dữ liệu
             \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $output .= "<b>SEEDING:</b><br>" . nl2br(\Illuminate\Support\Facades\Artisan::output());
             
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Hệ thống đã được làm mới hoàn toàn! Bảng "regions" và dữ liệu Admin đã sẵn sàng.',
-                'admin_account' => [
-                    'username' => 'admin',
-                    'password' => '123456'
-                ]
-            ]);
+            return $output . "<br>--- HOÀN TẤT ---";
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
