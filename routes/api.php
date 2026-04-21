@@ -28,6 +28,16 @@ Route::prefix('v1')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 
+    // TUYỆT CHIÊU: Chạy Seeder từ trình duyệt (Xoá sau khi dùng xong)
+    Route::get('seed-database', function() {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            return response()->json(['message' => 'Dữ liệu đã được nạp thành công!', 'output' => \Illuminate\Support\Facades\Artisan::output()]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    });
+
     // ==========================================
     // CUSTOMER PUBLIC ROUTES (PHASE 1)
     // ==========================================
