@@ -50,6 +50,16 @@ Route::prefix('v1')->group(function () {
         }
     });
 
+    // Nút bấm nạp lại 4 Roles (Không mất dữ liệu cũ)
+    Route::get('seed-roles', function() {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            return response()->json(['status' => 'success', 'message' => 'Đã nạp đủ 4 quyền tiêu chuẩn!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    });
+
     // ==========================================
     // CUSTOMER PUBLIC ROUTES (PHASE 1)
     // ==========================================
