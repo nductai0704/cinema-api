@@ -28,13 +28,18 @@ Route::prefix('v1')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 
-    // TUYỆT CHIÊU: Chạy Seeder từ trình duyệt (Xoá sau khi dùng xong)
-    Route::get('seed-database', function() {
+    // SIÊU NÚT BẤM: Chạy Migration & Seeder từ trình duyệt
+    Route::get('setup-database', function() {
         try {
+            echo "Đang khởi tạo danh sách bảng...<br>";
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            
+            echo "Đang nạp dữ liệu mẫu (Seeder)...<br>";
             \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            return response()->json(['message' => 'Dữ liệu đã được nạp thành công!', 'output' => \Illuminate\Support\Facades\Artisan::output()]);
+            
+            return "CHÚC MỪNG! Toàn bộ bảng và dữ liệu đã được nạp xong. Bạn có thể sử dụng API ngay bây giờ.";
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return "LỖI: " . $e->getMessage();
         }
     });
 
