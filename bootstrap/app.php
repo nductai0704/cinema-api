@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'account_status' => \App\Http\Middleware\CheckAccountStatus::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
+    ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->shouldRenderJsonWhen(function ($request, $e) {
+            if ($request->is('api/*')) {
+                return true;
+            }
+
+            return $request->expectsJson();
+        });
     })->create();
