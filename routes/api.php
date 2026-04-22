@@ -75,6 +75,7 @@ Route::prefix('v1')->group(function () {
 
     Route::get('cinemas', [CinemaController::class, 'index']);
     Route::get('cinemas/{cinema_id}', [CinemaController::class, 'show']);
+    Route::get('cinemas/{cinema_id}/movies', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getMoviesByCinema']);
     Route::get('combos', [ComboController::class, 'index']);
     Route::get('genres', [GenreController::class, 'index']);
     Route::get('genres/{genre_id}', [GenreController::class, 'show']);

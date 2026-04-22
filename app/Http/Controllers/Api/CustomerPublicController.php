@@ -9,6 +9,7 @@ use App\Models\Seat;
 use App\Models\Ticket;
 use App\Models\SeatHold;
 use App\Models\Cinema;
+use App\Models\Genre;
 use Illuminate\Http\Request;
 use App\Http\Resources\Customer\MovieDetailResource;
 use App\Http\Resources\Customer\ShowtimeResource;
@@ -84,6 +85,60 @@ class CustomerPublicController extends Controller
     /**
      * Lấy sơ đồ ghế và trạng thái thời gian thực
      */
+    /**
+     * Lấy lịch chiếu của rạp, nhóm theo phim
+     */
+    public function getMoviesByCinema($cinemaId)
+    {
+        $now = now();
+        $cinema = Cinema::findOrFail($cinemaId);
+
+        // Lấy các phim có suất chiếu tại rạp này
+        $movies = Movie::whereHas('showtimes', function ($query) use ($cinemaId, $now) {
+            $query->whereHas('room', function($q) use ($cinemaId) {
+                $q->where('cinema_id', $cinemaId);
+            })
+            ->where('status', 'active')
+            ->where(function($q) use ($now) {
+                $q->where('show_date', '>', $now->toDateString())
+                  ->orWhere(function($q2) use ($now) {
+                      $q2->where('show_date', $now->toDateString())
+                         ->where('start_time', '>', $now->toTimeString());
+                  });
+            });
+        })->with(['showtimes' => function ($query) use ($cinemaId, $now) {
+            $query->whereHas('room', function($q) use ($cinemaId) {
+                $q->where('cinema_id', $cinemaId);
+            })
+            ->where('status', 'active')
+            ->where(function($q) use ($now) {
+                $q->where('show_date', '>', $now->toDateString())
+                  ->orWhere(function($q2) use ($now) {
+                      $q2->where('show_date', $now->toDateString())
+                         ->where('start_time', '>', $now->toTimeString());
+                  });
+            })
+            ->orderBy('show_date')
+            ->orderBy('start_time');
+        }])->get();
+
+        $result = $movies->map(function ($movie) {
+            return [
+                'movie_id' => $movie->movie_id,
+                'movie_name' => $movie->movie_name,
+                'poster_url' => $movie->poster_url,
+                'duration' => $movie->duration,
+                'age_rating' => $movie->age_rating,
+                'showtimes' => ShowtimeResource::collection($movie->showtimes),
+            ];
+        });
+
+        return response()->json([
+            'cinema_name' => $cinema->cinema_name,
+            'movies' => $result
+        ]);
+    }
+
     public function getRoomLayout($showtimeId)
     {
         $showtime = Showtime::with('room')->findOrFail($showtimeId);
