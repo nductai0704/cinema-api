@@ -27,6 +27,9 @@ class Seat extends Model
         'row_label',
         'seat_number',
         'seat_type',
+        'grid_x',
+        'grid_y',
+        'pair_uuid',
         'status',
     ];
 

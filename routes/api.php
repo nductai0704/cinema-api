@@ -127,6 +127,7 @@ Route::prefix('v1')->group(function () {
 
             Route::apiResource('showtimes', \App\Http\Controllers\Manager\ManagerShowtimeController::class);
             Route::apiResource('staffs', \App\Http\Controllers\Manager\ManagerStaffController::class);
+            Route::apiResource('seat-layouts', \App\Http\Controllers\Manager\ManagerSeatLayoutController::class);
             Route::apiResource('news', \App\Http\Controllers\Manager\ManagerNewsController::class);
             
             Route::get('combos', [\App\Http\Controllers\Manager\ManagerComboController::class, 'index']);
