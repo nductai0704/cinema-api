@@ -25,7 +25,7 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('login', [AuthController::class, 'login'])->name('login');
     Route::post('register', [AuthController::class, 'register']);
 
     // SIÊU NÚT BẤM V4: Chẩn đoán & Ép buộc Sửa lỗi
