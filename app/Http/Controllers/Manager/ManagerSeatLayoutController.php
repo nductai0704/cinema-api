@@ -11,7 +11,9 @@ class ManagerSeatLayoutController extends Controller
     public function index()
     {
         // Trait auto scopes to manager's cinema
-        return response()->json(SeatLayout::all());
+        return response()->json([
+            'data' => SeatLayout::all()
+        ]);
     }
 
     public function store(Request $request)
