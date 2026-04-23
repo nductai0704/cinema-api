@@ -120,7 +120,7 @@ Route::prefix('v1')->group(function () {
         // ==========================================
         // ROUTES DÀNH CHO MANAGER (QUẢN LÝ RẠP)
         // ==========================================
-        Route::middleware(['account_status'])->prefix('manager')->group(function () {
+        Route::middleware(['manager', 'account_status'])->prefix('manager')->group(function () {
             Route::apiResource('rooms', \App\Http\Controllers\Manager\ManagerRoomController::class);
             Route::get('rooms/{roomId}/seats', [\App\Http\Controllers\Manager\ManagerSeatController::class, 'index']);
             Route::post('rooms/{roomId}/seats/bulk', [\App\Http\Controllers\Manager\ManagerSeatController::class, 'bulkStore']);
