@@ -28,13 +28,13 @@ class ManagerSeatLayoutController extends Controller
         ]);
 
         $layout = SeatLayout::create($data); // cinema_id auto attached
-        return response()->json($layout, 201);
+        return response()->json(['data' => $layout], 201);
     }
 
     public function show($id)
     {
         $layout = SeatLayout::findOrFail($id);
-        return response()->json($layout);
+        return response()->json(['data' => $layout]);
     }
 
     public function update(Request $request, $id)
@@ -51,7 +51,7 @@ class ManagerSeatLayoutController extends Controller
         ]);
 
         $layout->update($data);
-        return response()->json($layout);
+        return response()->json(['data' => $layout]);
     }
 
     public function destroy($id)
