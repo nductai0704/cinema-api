@@ -33,9 +33,9 @@ Route::prefix('v1')->group(function () {
         try {
             $output = "--- BẮT ĐẦU CHẨN ĐOÁN & SỬA LỖI ---<br>";
             
-            // 1. Ép buộc xóa và tạo lại toàn bộ (Mạnh mẽ nhất)
-            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
-            $output .= "<b>1. Migrate Fresh:</b> Thành công!<br>";
+            // 1. Chạy cập nhật database (giữ lại dữ liệu cũ)
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output .= "<b>1. Migrate:</b> Đã cập nhật cấu trúc mới nhất!<br>";
             
             // 2. Kiểm tra xem bảng cinemas có cột region_id chưa?
             if (\Illuminate\Support\Facades\Schema::hasColumn('cinemas', 'region_id')) {
