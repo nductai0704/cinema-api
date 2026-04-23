@@ -19,7 +19,6 @@ class UserResource extends JsonResource
             'role' => $this->whenLoaded('role', function() {
                 return $this->role->role_name;
             }),
-            'cinema_id' => $this->cinema_id,
             'cinema' => new CinemaResource($this->whenLoaded('cinema')),
             'status' => $this->status,
         ];
