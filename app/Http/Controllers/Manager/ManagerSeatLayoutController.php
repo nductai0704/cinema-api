@@ -20,6 +20,7 @@ class ManagerSeatLayoutController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'row_count' => 'required|integer|min:1',
             'column_count' => 'required|integer|min:1',
             'layout_data' => 'required|array',
@@ -42,6 +43,7 @@ class ManagerSeatLayoutController extends Controller
 
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
             'row_count' => 'sometimes|required|integer|min:1',
             'column_count' => 'sometimes|required|integer|min:1',
             'layout_data' => 'sometimes|required|array',
@@ -57,5 +59,17 @@ class ManagerSeatLayoutController extends Controller
         $layout = SeatLayout::findOrFail($id);
         $layout->delete();
         return response()->json(['message' => 'Xóa mẫu sơ đồ ghế thành công']);
+    }
+
+    public function toggleStatus($id)
+    {
+        $layout = SeatLayout::findOrFail($id);
+        $newStatus = $layout->status === 'active' ? 'inactive' : 'active';
+        $layout->update(['status' => $newStatus]);
+        
+        return response()->json([
+            'message' => $newStatus === 'active' ? 'Đã kích hoạt sơ đồ.' : 'Đã tạm ngưng sơ đồ.',
+            'status' => $newStatus
+        ]);
     }
 }

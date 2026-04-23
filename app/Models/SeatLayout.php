@@ -21,6 +21,7 @@ class SeatLayout extends Model
     protected $fillable = [
         'cinema_id',
         'name',
+        'description',
         'row_count',
         'column_count',
         'layout_data',
