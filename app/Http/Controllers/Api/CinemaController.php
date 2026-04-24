@@ -8,12 +8,15 @@ use Illuminate\Http\Request;
 
 class CinemaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cinemas = Cinema::where('status', 'active')
-            ->orderBy('city')
-            ->orderBy('cinema_name')
-            ->get();
+        $query = Cinema::where('status', 'active');
+
+        if ($request->has('region_id')) {
+            $query->where('region_id', $request->region_id);
+        }
+
+        $cinemas = $query->orderBy('cinema_name')->get();
 
         return response()->json($cinemas);
     }

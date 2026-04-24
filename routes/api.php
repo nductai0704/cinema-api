@@ -79,6 +79,7 @@ Route::prefix('v1')->group(function () {
     Route::get('combos', [ComboController::class, 'index']);
     Route::get('genres', [GenreController::class, 'index']);
     Route::get('genres/{genre_id}', [GenreController::class, 'show']);
+    Route::get('regions', [\App\Http\Controllers\Admin\RegionController::class, 'index']);
 
     Route::middleware(['auth:sanctum', 'account_status'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
