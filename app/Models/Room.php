@@ -19,8 +19,14 @@ class Room extends Model
         'cinema_id',
         'capacity',
         'room_type_id',
+        'seat_layout_id',
         'status',
     ];
+
+    public function seatLayout()
+    {
+        return $this->belongsTo(SeatLayout::class, 'seat_layout_id', 'layout_id');
+    }
 
     public function roomType()
     {
