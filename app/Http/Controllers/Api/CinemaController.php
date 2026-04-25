@@ -10,7 +10,7 @@ class CinemaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Cinema::where('status', 'active');
+        $query = Cinema::with('region')->where('status', 'active');
 
         if ($request->has('region_id')) {
             $query->where('region_id', $request->region_id);
@@ -23,7 +23,7 @@ class CinemaController extends Controller
 
     public function show(int $cinema_id)
     {
-        $cinema = Cinema::with(['rooms', 'users.role'])
+        $cinema = Cinema::with(['region', 'rooms', 'users.role'])
             ->findOrFail($cinema_id);
 
         return response()->json($cinema);
