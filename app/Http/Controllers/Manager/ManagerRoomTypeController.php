@@ -20,8 +20,9 @@ class ManagerRoomTypeController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string',
-            'status' => 'nullable|string|in:active,inactive',
         ]);
+
+        $data['status'] = 'active';
 
         $type = RoomType::create($data); // cinema_id auto attached
         return response()->json($type, 201);
