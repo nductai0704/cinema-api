@@ -25,7 +25,6 @@ class MovieResource extends JsonResource
             'director' => $this->director,
             'actors' => $this->actors,
             'status' => $this->display_status,
-            'db_status' => $this->status, // Giữ lại giá trị gốc nếu admin cần biết cỗ máy đang bật/tắt hay không
             'genres' => $this->whenLoaded('genres', function() {
                 return $this->genres->pluck('genre_name');
             }),

@@ -41,18 +41,6 @@ class Movie extends Model
     ];
 
     /**
-     * The "booted" method of the model.
-     */
-    protected static function booted(): void
-    {
-        // Chỉ lọc bỏ những phim bị Manager chủ động đánh dấu là 'inactive'
-        // Còn việc phim hết hạn hay chưa sẽ do logic ngày tháng quyết định
-        static::addGlobalScope('not_hidden', function ($query) {
-            $query->where('status', '!=', 'inactive');
-        });
-    }
-
-    /**
      * Scope: Phim đang trong giai đoạn trình chiếu
      */
     public function scopeShowing($query)
@@ -75,27 +63,23 @@ class Movie extends Model
      */
     public function getDisplayStatusAttribute(): string
     {
-        if (strtolower($this->status ?? '') === 'inactive') {
-            return 'Đã ẩn';
-        }
-
         $now = now()->startOfDay();
         $releaseDate = $this->release_date ? $this->release_date->startOfDay() : null;
         $endDate = $this->end_date ? $this->end_date->startOfDay() : null;
 
         if (!$releaseDate || !$endDate) {
-            return 'Không xác định';
+            return 'unknown';
         }
 
         if ($now->lt($releaseDate)) {
-            return 'Sắp chiếu';
+            return 'upcoming';
         }
 
         if ($now->gt($endDate)) {
-            return 'Ngưng chiếu';
+            return 'expired';
         }
 
-        return 'Đang chiếu';
+        return 'showing';
     }
 
     public function genres()
