@@ -32,6 +32,8 @@ class Movie extends Model
         'status',
     ];
 
+    protected $appends = ['display_status'];
+
     protected $casts = [
         'release_date' => 'date',
         'end_date' => 'date',
@@ -43,9 +45,29 @@ class Movie extends Model
      */
     protected static function booted(): void
     {
-        static::addGlobalScope('active', function ($query) {
+        // Chỉ lọc bỏ những phim bị Manager chủ động đánh dấu là 'inactive'
+        // Còn việc phim hết hạn hay chưa sẽ do logic ngày tháng quyết định
+        static::addGlobalScope('not_hidden', function ($query) {
             $query->where('status', '!=', 'inactive');
         });
+    }
+
+    /**
+     * Scope: Phim đang trong giai đoạn trình chiếu
+     */
+    public function scopeShowing($query)
+    {
+        $today = now()->startOfDay();
+        return $query->where('release_date', '<=', $today)
+                     ->where('end_date', '>=', $today);
+    }
+
+    /**
+     * Scope: Phim sắp ra mắt
+     */
+    public function scopeUpcoming($query)
+    {
+        return $query->where('release_date', '>', now()->startOfDay());
     }
 
     /**

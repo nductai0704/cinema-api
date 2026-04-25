@@ -20,12 +20,18 @@ class MovieRequest extends FormRequest
     public function rules(): array
     {
         $movieId = $this->route('movie') ? $this->route('movie')->movie_id : null;
+        $isCreating = $this->isMethod('POST');
 
         return [
             'title' => 'required|string|max:255|unique:movies,title,' . $movieId . ',movie_id',
             'duration' => 'required|integer|min:1',
             'release_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:release_date',
+            'end_date' => [
+                'required',
+                'date',
+                'after_or_equal:release_date',
+                $isCreating ? 'after_or_equal:today' : '',
+            ],
             'description' => 'nullable|string',
             'language' => 'nullable|string|max:100',
             'age_limit' => 'nullable|integer',
@@ -51,7 +57,7 @@ class MovieRequest extends FormRequest
             'duration.required' => 'Thời lượng phim không được để trống.',
             'release_date.required' => 'Ngày khởi chiếu không được để trống.',
             'end_date.required' => 'Ngày kết thúc không được để trống.',
-            'end_date.after_or_equal' => 'Ngày kết thúc phải sau hoặc bằng ngày khởi chiếu.',
+            'end_date.after_or_equal' => 'Ngày kết thúc phải sau hoặc bằng ngày khởi chiếu và không được ở trong quá khứ.',
         ];
     }
 }

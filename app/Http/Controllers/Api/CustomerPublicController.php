@@ -23,12 +23,8 @@ class CustomerPublicController extends Controller
      */
     public function getMovies()
     {
-        $now = now()->startOfDay();
-
-        $movies = Movie::where('status', 'active')->get();
-
-        $nowShowing = $movies->filter(fn($m) => $m->release_date && $m->release_date->startOfDay() <= $now);
-        $comingSoon = $movies->filter(fn($m) => $m->release_date && $m->release_date->startOfDay() > $now);
+        $nowShowing = Movie::showing()->orderBy('release_date', 'desc')->get();
+        $comingSoon = Movie::upcoming()->orderBy('release_date', 'asc')->get();
 
         return response()->json([
             'now_showing' => MovieDetailResource::collection($nowShowing),
