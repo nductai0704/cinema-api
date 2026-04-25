@@ -132,6 +132,7 @@ Route::prefix('v1')->group(function () {
         // ==========================================
         Route::middleware(['manager', 'account_status'])->prefix('manager')->group(function () {
             Route::apiResource('rooms', \App\Http\Controllers\Manager\ManagerRoomController::class);
+            Route::patch('rooms/{room}/status', [\App\Http\Controllers\Manager\ManagerRoomController::class, 'toggleStatus']);
             Route::get('rooms/{roomId}/seats', [\App\Http\Controllers\Api\ManagerSeatController::class, 'index']);
             Route::post('rooms/{roomId}/seats/bulk', [\App\Http\Controllers\Api\ManagerSeatController::class, 'bulkStore']);
             Route::post('rooms/{roomId}/seats/sync', [\App\Http\Controllers\Api\ManagerSeatController::class, 'syncLayout']);

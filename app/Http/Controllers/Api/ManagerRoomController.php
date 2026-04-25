@@ -78,4 +78,23 @@ class ManagerRoomController extends Controller
 
         return response()->json(['message' => 'Phòng chiếu đã được xóa.']);
     }
+
+    public function toggleStatus(Request $request, int $room_id)
+    {
+        $manager = $request->user();
+        $room = Room::where('cinema_id', $manager->cinema_id)->findOrFail($room_id);
+
+        $newStatus = strtolower($room->status) === 'active' ? 'inactive' : 'active';
+
+        if ($newStatus === 'inactive' && $room->hasFutureShowtimes()) {
+            return response()->json(['message' => 'Không thể khóa phòng khi còn suất chiếu đang hoạt động hoặc sắp diễn ra.'], 422);
+        }
+
+        $room->update(['status' => $newStatus]);
+
+        return response()->json([
+            'message' => $newStatus === 'active' ? 'Phòng đã chuyển sang trạng thái Hoạt động.' : 'Phòng đã trở thành Bản nháp.',
+            'status' => $newStatus
+        ]);
+    }
 }

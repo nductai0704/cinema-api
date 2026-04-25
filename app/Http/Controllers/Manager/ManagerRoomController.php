@@ -145,4 +145,32 @@ class ManagerRoomController extends Controller
     }
 
     // Optional destroy if no showtimes attached, but let's keep it simple
+
+    public function toggleStatus(Request $request, $id)
+    {
+        $hasFuture = Room::findOrFail($id)->showtimes()
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->where('show_date', '>', now()->toDateString())
+                    ->orWhere(function ($query) {
+                        $query->where('show_date', now()->toDateString())
+                            ->where('end_time', '>', now()->format('H:i:s'));
+                    });
+            })
+            ->exists();
+
+        $room = Room::findOrFail($id);
+        $newStatus = strtolower($room->status) === 'active' ? 'inactive' : 'active';
+
+        if ($newStatus === 'inactive' && $hasFuture) {
+            return response()->json(['message' => 'Không thể khóa phòng khi còn suất chiếu đang hoạt động hoặc sắp diễn ra.'], 422);
+        }
+
+        $room->update(['status' => $newStatus]);
+
+        return response()->json([
+            'message' => $newStatus === 'active' ? 'Phòng đã chuyển sang trạng thái Hoạt động.' : 'Phòng đã chuyển sang Bản nháp.',
+            'status' => $newStatus
+        ]);
+    }
 }
