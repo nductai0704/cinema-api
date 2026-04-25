@@ -34,7 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function sendEmailVerificationNotification()
     {
-        $this->notify((new \Illuminate\Auth\Notifications\VerifyEmail)->delay(now()->addSeconds(5)));
+        $this->notify(new \App\Notifications\QueuedVerifyEmail);
     }
 
     protected $table = 'users';
