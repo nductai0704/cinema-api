@@ -15,7 +15,14 @@ class ManagerRoomController extends Controller
     public function index()
     {
         // Trait autoscopes to the manager's cinema
-        return RoomResource::collection(Room::with('cinema', 'roomType', 'seatLayout')->withCount('seats')->paginate(10));
+        $rooms = Room::with('cinema', 'roomType', 'seatLayout')->withCount('seats')->paginate(10);
+
+        // Tính tổng sức chứa của cả rạp (chỉ ghế active trong các phòng active)
+        $cinemaCapacity = Room::where('status', 'active')->sum('capacity');
+
+        return RoomResource::collection($rooms)->additional([
+            'cinema_total_capacity' => (int) $cinemaCapacity
+        ]);
     }
 
     public function store(Request $request)
@@ -111,6 +118,12 @@ class ManagerRoomController extends Controller
         if (count($seatsToInsert) > 0) {
             Seat::insert($seatsToInsert);
         }
+
+        // ✅ Tự động cập nhật capacity phòng = số ghế usable (bỏ qua hư và lối đi)
+        $usableCount = count($seatsToInsert); // Tất cả ghế đã insert đều là ghế dùng được
+        \Illuminate\Support\Facades\DB::table('rooms')
+            ->where('room_id', $roomId)
+            ->update(['capacity' => $usableCount]);
     }
 
     public function show($id)
