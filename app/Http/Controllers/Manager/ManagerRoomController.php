@@ -21,20 +21,18 @@ class ManagerRoomController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'room_name' => 'required|string|max:100',
-            'capacity' => 'required|integer|min:1',
-            'room_type_id' => 'required|exists:room_types,room_type_id',
-            'status' => 'nullable|string|in:active,inactive,maintenance',
-            'seat_layout_id' => 'nullable|exists:seat_layouts,layout_id',
+            'room_name'       => 'required|string|max:100',
+            'capacity'        => 'required|integer|min:1',
+            'room_type_id'    => 'required|exists:room_types,room_type_id',
+            'seat_layout_id'  => 'nullable|exists:seat_layouts,layout_id',
+            'status'          => 'nullable|string|in:active,inactive,maintenance',
         ]);
 
-        $roomData = \Illuminate\Support\Arr::except($data, ['seat_layout_id']);
-        // cinema_id is auto-assigned by BelongsToCinema creating event
-        $room = Room::create($roomData);
+        // seat_layout_id đã có trong $fillable nên tạo thẳng vào 1 lần luôn
+        $room = Room::create($data); // cinema_id auto-assigned by BelongsToCinema
 
-        if ($request->filled('seat_layout_id')) {
-            $room->update(['seat_layout_id' => $request->seat_layout_id]);
-            $this->applySeatLayout($room->room_id, $request->seat_layout_id);
+        if (!empty($data['seat_layout_id'])) {
+            $this->applySeatLayout($room->room_id, $data['seat_layout_id']);
         }
 
         return new RoomResource($room->load('roomType', 'seatLayout'));
