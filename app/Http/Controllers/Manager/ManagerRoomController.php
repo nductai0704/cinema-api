@@ -68,7 +68,7 @@ class ManagerRoomController extends Controller
 
             $rowLabel = strtoupper(trim($row['label'] ?? ''));
             $rowPairUuids = []; // Lưu trữ uuid cho ghế đôi trong cùng 1 hàng
-            $seatCounter = 1;   // Đánh số tuần tự, BỎ QUA lối đi và ô trống
+            $seatCounter = 1;   // Đánh số tuần tự theo từng hàng
 
             foreach ($row['seats'] as $x => $seat) {
                 // Bỏ qua nếu type null/empty (ô trống)
@@ -110,8 +110,7 @@ class ManagerRoomController extends Controller
                     'updated_at' => $now,
                 ];
 
-                // Ghế đôi tốn 2 số (1 + 2 = A1, A2)
-                $seatCounter += ($type === 'double') ? 2 : 1;
+                $seatCounter++; // Mỗi ô = 1 hàng DB, tăng 1 liên tiếp
             }
         }
 
@@ -119,11 +118,16 @@ class ManagerRoomController extends Controller
             Seat::insert($seatsToInsert);
         }
 
-        // ✅ Tự động cập nhật capacity phòng = số ghế usable (bỏ qua hư và lối đi)
-        $usableCount = count($seatsToInsert); // Tất cả ghế đã insert đều là ghế dùng được
+        // ✅ Tính capacity đúng:
+        // - Standard/VIP: mỗi ô = 1 chỗ ngồi
+        // - Double: 2 ô chung pair_uuid = 1 chỗ ngồi (ghế đôi)
+        $doubleCount = collect($seatsToInsert)->where('seat_type', 'double')->count();
+        $otherCount  = collect($seatsToInsert)->where('seat_type', '!=', 'double')->count();
+        $capacity    = $otherCount + (int)($doubleCount / 2);
+
         \Illuminate\Support\Facades\DB::table('rooms')
             ->where('room_id', $roomId)
-            ->update(['capacity' => $usableCount]);
+            ->update(['capacity' => $capacity]);
     }
 
     public function show($id)
