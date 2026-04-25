@@ -22,6 +22,7 @@ class RegionRequest extends FormRequest
         return [
             'city' => 'required|string|max:100',
             'district' => 'required|string|max:100',
+            'status' => 'nullable|string|in:active,inactive',
         ];
     }
 

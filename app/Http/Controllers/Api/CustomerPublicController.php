@@ -135,6 +135,12 @@ class CustomerPublicController extends Controller
         ]);
     }
 
+    public function getRegions()
+    {
+        $regions = \App\Models\Region::active()->get();
+        return \App\Http\Resources\RegionResource::collection($regions);
+    }
+
     public function getRoomLayout($showtimeId)
     {
         $showtime = Showtime::with('room')->findOrFail($showtimeId);

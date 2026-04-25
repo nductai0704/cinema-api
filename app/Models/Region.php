@@ -16,7 +16,13 @@ class Region extends Model
     protected $fillable = [
         'city',
         'district',
+        'status',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
 
     public function cinemas()
     {
