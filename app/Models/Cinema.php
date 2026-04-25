@@ -17,10 +17,13 @@ class Cinema extends Model
         'cinema_name',
         'region_id',
         'address',
-        'city',
-        'district',
         'phone',
         'status',
+    ];
+
+    protected $hidden = [
+        'city',
+        'district',
     ];
 
     public function region()
