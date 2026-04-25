@@ -47,53 +47,57 @@ class ManagerRoomController extends Controller
         $seatsToInsert = [];
         $now = now();
 
-        // layout_data là mảng 2 chiều thẳng từ state grid của FE: 
+        // layout_data là mảng 2 chiều thẳng từ state grid của FE:
         // [ { label: 'A', seats: [ { id: 'A1', type: 'regular', pair: null }, ... ] }, ... ]
         foreach ($layout->layout_data as $y => $row) {
             if (!is_array($row) || !isset($row['seats']) || !is_array($row['seats'])) continue;
 
             $rowLabel = strtoupper(trim($row['label'] ?? ''));
             $rowPairUuids = []; // Lưu trữ uuid cho ghế đôi trong cùng 1 hàng
+            $seatCounter = 1;   // Đánh số tuần tự, BỎ QUA lối đi và ô trống
 
             foreach ($row['seats'] as $x => $seat) {
-                // Nếu type bị null hoặc empty, bỏ qua không tạo ghế vật lý
+                // Bỏ qua nếu type null/empty (ô trống)
                 if (empty($seat['type'])) continue;
 
                 $type = strtolower($seat['type']);
+
+                // ✅ BỎ QUA LỐI ĐI - không tạo ghế cho ô aisle
+                if ($type === 'aisle') continue;
+
                 if ($type === 'regular') $type = 'standard';
 
                 $pairUuid = null;
                 if ($type === 'double') {
                     if (isset($rowPairUuids[$x])) {
-                        // Đã được người đá cặp cấp phát UUID từ vòng lặp trước
+                        // Đã được ghế kia đặt UUID từ vòng lặp trước
                         $pairUuid = $rowPairUuids[$x];
                     } else {
-                        // Tự cấp UUID mới
+                        // Tự cấp UUID mới và chia sẻ cho ghế cặp
                         $pairUuid = (string) \Illuminate\Support\Str::uuid();
                         $rowPairUuids[$x] = $pairUuid;
-                        
-                        // Cất UUID này cho người đá cặp (FE gửi seat.pair = index của người kia)
+
                         if (isset($seat['pair']) && $seat['pair'] !== null) {
                             $rowPairUuids[$seat['pair']] = $pairUuid;
                         }
                     }
                 }
 
-                // Vì frontend logic là `c + 1`
-                $seatNumber = $x + 1;
-
                 $seatsToInsert[] = [
-                    'room_id' => $roomId,
-                    'row_label' => $rowLabel,
-                    'seat_number' => $seatNumber,
-                    'seat_type' => $type,
-                    'grid_x' => $x,
-                    'grid_y' => $y,
-                    'pair_uuid' => $pairUuid,
-                    'status' => 'active',
+                    'room_id'    => $roomId,
+                    'row_label'  => $rowLabel,
+                    'seat_number'=> $seatCounter, // ✅ Số tuần tự (A1, A2, A3...) - không bị lệch bởi aisle
+                    'seat_type'  => $type,
+                    'grid_x'     => $x,           // Vẫn giữ vị trí grid để FE render đúng vị trí
+                    'grid_y'     => $y,
+                    'pair_uuid'  => $pairUuid,
+                    'status'     => 'active',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
+
+                // Ghế đôi tốn 2 số (1 + 2 = A1, A2)
+                $seatCounter += ($type === 'double') ? 2 : 1;
             }
         }
 
