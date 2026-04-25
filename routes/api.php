@@ -137,6 +137,9 @@ Route::prefix('v1')->group(function () {
             Route::post('rooms/{roomId}/seats/bulk', [\App\Http\Controllers\Api\ManagerSeatController::class, 'bulkStore']);
             Route::post('rooms/{roomId}/seats/sync', [\App\Http\Controllers\Api\ManagerSeatController::class, 'syncLayout']);
 
+            Route::apiResource('room-types', \App\Http\Controllers\Manager\ManagerRoomTypeController::class);
+            Route::patch('room-types/{id}/status', [\App\Http\Controllers\Manager\ManagerRoomTypeController::class, 'toggleStatus']);
+
             Route::apiResource('showtimes', \App\Http\Controllers\Manager\ManagerShowtimeController::class);
             Route::apiResource('staffs', \App\Http\Controllers\Manager\ManagerStaffController::class);
             Route::apiResource('seat-layouts', \App\Http\Controllers\Manager\ManagerSeatLayoutController::class);

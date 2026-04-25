@@ -18,9 +18,14 @@ class Room extends Model
         'room_name',
         'cinema_id',
         'capacity',
-        'room_type',
+        'room_type_id',
         'status',
     ];
+
+    public function roomType()
+    {
+        return $this->belongsTo(RoomType::class, 'room_type_id', 'room_type_id');
+    }
 
     public function cinema()
     {

@@ -23,7 +23,7 @@ class ManagerRoomController extends Controller
         $data = $request->validate([
             'room_name' => 'required|string|max:100',
             'capacity' => 'required|integer|min:1',
-            'room_type' => 'required|string|max:50',
+            'room_type_id' => 'required|exists:room_types,room_type_id',
             'status' => 'nullable|string|in:active,inactive,maintenance',
             'seat_layout_id' => 'nullable|exists:seat_layouts,layout_id',
         ]);
@@ -36,7 +36,7 @@ class ManagerRoomController extends Controller
             $this->applySeatLayout($room->room_id, $request->seat_layout_id);
         }
 
-        return new RoomResource($room);
+        return new RoomResource($room->load('roomType'));
     }
 
     private function applySeatLayout($roomId, $layoutId)
@@ -103,9 +103,8 @@ class ManagerRoomController extends Controller
     }
 
     public function show($id)
-
     {
-        $room = Room::with('seats')->findOrFail($id);
+        $room = Room::with('seats', 'roomType')->findOrFail($id);
         return response()->json($room); // Hoặc Resource nêú có
     }
 
@@ -116,7 +115,7 @@ class ManagerRoomController extends Controller
         $data = $request->validate([
             'room_name' => 'sometimes|required|string|max:100',
             'capacity' => 'sometimes|required|integer|min:1',
-            'room_type' => 'sometimes|required|string|max:50',
+            'room_type_id' => 'sometimes|required|exists:room_types,room_type_id',
             'status' => 'nullable|string|in:active,inactive,maintenance',
             'seat_layout_id' => 'nullable|exists:seat_layouts,layout_id',
         ]);
