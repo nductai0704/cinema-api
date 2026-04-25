@@ -41,7 +41,6 @@ class ManagerRoomTypeController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:100',
             'description' => 'nullable|string',
-            'status' => 'nullable|string|in:active,inactive',
         ]);
 
         $type->update($data);

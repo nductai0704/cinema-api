@@ -15,7 +15,7 @@ class ManagerRoomController extends Controller
     public function index()
     {
         // Trait autoscopes to the manager's cinema
-        return RoomResource::collection(Room::with('cinema')->withCount('seats')->paginate(10));
+        return RoomResource::collection(Room::with('cinema', 'roomType')->withCount('seats')->paginate(10));
     }
 
     public function store(Request $request)
