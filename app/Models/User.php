@@ -29,6 +29,14 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, BelongsToCinema;
 
+    /**
+     * Gửi mail xác thực chạy ngầm (Queue) để không làm chậm quá trình đăng ký
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify((new \Illuminate\Auth\Notifications\VerifyEmail)->delay(now()->addSeconds(5)));
+    }
+
     protected $table = 'users';
     protected $primaryKey = 'user_id';
     public $timestamps = true;

@@ -226,12 +226,11 @@ class CustomerBookingController extends Controller
                     ->whereIn('seat_id', $ticketSeatIds)
                     ->delete();
 
-            // ✅ GỬI EMAIL VÉ KÈM MÃ QR
+            // ✅ GỬI EMAIL VÉ KÈM MÃ QR (CHẠY NGẦM)
             try {
-                Mail::to($booking->user->email)->send(new BookingSuccessMail($booking));
+                Mail::to($booking->user->email)->queue(new BookingSuccessMail($booking));
             } catch (\Exception $e) {
-                // Log lỗi nếu không gửi được mail nhưng vẫn cho phép thanh toán thành công
-                \Illuminate\Support\Facades\Log::error('Lỗi gửi mail vé: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('Lỗi xếp hàng gửi mail vé: ' . $e->getMessage());
             }
 
             return response()->json([
