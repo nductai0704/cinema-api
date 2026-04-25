@@ -75,6 +75,10 @@ class Movie extends Model
      */
     public function getDisplayStatusAttribute(): string
     {
+        if (strtolower($this->status ?? '') === 'inactive') {
+            return 'Đã ẩn';
+        }
+
         $now = now()->startOfDay();
         $releaseDate = $this->release_date ? $this->release_date->startOfDay() : null;
         $endDate = $this->end_date ? $this->end_date->startOfDay() : null;

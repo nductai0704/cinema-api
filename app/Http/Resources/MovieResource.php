@@ -24,8 +24,8 @@ class MovieResource extends JsonResource
             'trailer_url' => $this->trailer_url,
             'director' => $this->director,
             'actors' => $this->actors,
-            'status' => $this->status,
-            'display_status' => $this->display_status, // Từ Accessor trong Model
+            'status' => $this->display_status,
+            'db_status' => $this->status, // Giữ lại giá trị gốc nếu admin cần biết cỗ máy đang bật/tắt hay không
             'genres' => $this->whenLoaded('genres', function() {
                 return $this->genres->pluck('genre_name');
             }),
