@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BookingSuccessMail;
 
 class CustomerBookingController extends Controller
 {
@@ -203,7 +205,7 @@ class CustomerBookingController extends Controller
     public function confirmPayment(Request $request, $bookingId)
     {
         $user = Auth::user();
-        $booking = Booking::where('user_id', $user->user_id)
+        $booking = Booking::with('user')->where('user_id', $user->user_id)
                           ->where('booking_id', $bookingId)
                           ->firstOrFail();
 
@@ -224,8 +226,16 @@ class CustomerBookingController extends Controller
                     ->whereIn('seat_id', $ticketSeatIds)
                     ->delete();
 
+            // ✅ GỬI EMAIL VÉ KÈM MÃ QR
+            try {
+                Mail::to($booking->user->email)->send(new BookingSuccessMail($booking));
+            } catch (\Exception $e) {
+                // Log lỗi nếu không gửi được mail nhưng vẫn cho phép thanh toán thành công
+                \Illuminate\Support\Facades\Log::error('Lỗi gửi mail vé: ' . $e->getMessage());
+            }
+
             return response()->json([
-                'message' => 'Thanh toán thành công! Chúc bạn xem phim vui vẻ.',
+                'message' => 'Thanh toán thành công! Vé đã được gửi về Gmail của bạn.',
                 'booking_id' => $booking->booking_id,
                 'status' => 'completed'
             ]);
