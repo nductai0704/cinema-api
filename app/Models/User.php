@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -21,9 +22,10 @@ use App\Traits\BelongsToCinema;
     'role_id',
     'cinema_id',
     'status',
+    'email_verified_at',
 ])]
 #[Hidden(['password_hash', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, BelongsToCinema;
 
@@ -33,6 +35,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'email_verified_at' => 'datetime',
     ];
 
     public const ROLE_ADMIN = 'admin';
