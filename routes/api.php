@@ -132,8 +132,9 @@ Route::prefix('v1')->group(function () {
         // ==========================================
         Route::middleware(['manager', 'account_status'])->prefix('manager')->group(function () {
             Route::apiResource('rooms', \App\Http\Controllers\Manager\ManagerRoomController::class);
-            Route::get('rooms/{roomId}/seats', [\App\Http\Controllers\Manager\ManagerSeatController::class, 'index']);
-            Route::post('rooms/{roomId}/seats/bulk', [\App\Http\Controllers\Manager\ManagerSeatController::class, 'bulkStore']);
+            Route::get('rooms/{roomId}/seats', [\App\Http\Controllers\Api\ManagerSeatController::class, 'index']);
+            Route::post('rooms/{roomId}/seats/bulk', [\App\Http\Controllers\Api\ManagerSeatController::class, 'bulkStore']);
+            Route::post('rooms/{roomId}/seats/sync', [\App\Http\Controllers\Api\ManagerSeatController::class, 'syncLayout']);
 
             Route::apiResource('showtimes', \App\Http\Controllers\Manager\ManagerShowtimeController::class);
             Route::apiResource('staffs', \App\Http\Controllers\Manager\ManagerStaffController::class);
