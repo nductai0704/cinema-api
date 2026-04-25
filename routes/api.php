@@ -37,7 +37,6 @@ Route::prefix('v1')->group(function () {
         ->middleware(['auth:sanctum', 'throttle:6,1'])
         ->name('verification.send');
 
-    // SIÊU NÚT BẤM V4: Chẩn đoán & Ép buộc Sửa lỗi
     Route::get('setup-database', function() {
         try {
             $output = "--- BẮT ĐẦU CHẨN ĐOÁN & SỬA LỖI ---<br>";
@@ -46,21 +45,56 @@ Route::prefix('v1')->group(function () {
             \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
             $output .= "<b>1. Migrate:</b> Đã cập nhật cấu trúc mới nhất!<br>";
             
-            // 2. Kiểm tra xem bảng cinemas có cột region_id chưa?
+            // 2. Kiểm tra cột region_id trong cinemas
             if (\Illuminate\Support\Facades\Schema::hasColumn('cinemas', 'region_id')) {
-                $output .= "<b>2. Kiểm tra cột:</b> Cột 'region_id' ĐÃ TỒN TẠI trong bảng cinemas.<br>";
+                $output .= "<b>2. cinemas.region_id:</b> ĐÃ TỒN TẠI.<br>";
             } else {
-                $output .= "<b>2. Kiểm tra cột:</b> Cột 'region_id' VẪN THIẾU. Đang ép buộc tạo bằng lệnh SQL...<br>";
                 \Illuminate\Support\Facades\DB::statement("ALTER TABLE cinemas ADD region_id BIGINT UNSIGNED NULL AFTER cinema_name");
+                $output .= "<b>2. cinemas.region_id:</b> ĐÃ TẠO MỚI.<br>";
             }
-            
-            // 3. Nạp lại dữ liệu
-            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $output .= "<b>3. Seeding:</b> Thành công!<br>";
-            
-            return $output . "<br>--- HỆ THỐNG ĐÃ ĐƯỢC FIX CỨNG ---";
+
+            // 3. Kiểm tra cột status trong regions
+            if (\Illuminate\Support\Facades\Schema::hasColumn('regions', 'status')) {
+                $output .= "<b>3. regions.status:</b> ĐÃ TỒN TẠI.<br>";
+            } else {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE regions ADD status VARCHAR(50) NOT NULL DEFAULT 'active' AFTER district");
+                $output .= "<b>3. regions.status:</b> ĐÃ TẠO MỚI.<br>";
+            }
+
+            // 4. Kiểm tra bảng room_types
+            if (\Illuminate\Support\Facades\Schema::hasTable('room_types')) {
+                $output .= "<b>4. room_types table:</b> ĐÃ TỒN TẠI.<br>";
+            } else {
+                $output .= "<b>4. room_types table:</b> CHƯA TỒN TẠI - Đã được migrate ở bước 1.<br>";
+            }
+
+            // 5. Kiểm tra cột room_type_id trong rooms
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rooms', 'room_type_id')) {
+                $output .= "<b>5. rooms.room_type_id:</b> ĐÃ TỒN TẠI.<br>";
+            } else {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE rooms ADD room_type_id BIGINT UNSIGNED NULL AFTER room_name");
+                $output .= "<b>5. rooms.room_type_id:</b> ĐÃ TẠO MỚI.<br>";
+            }
+
+            // 6. Kiểm tra cột seat_layout_id trong rooms ← QUAN TRỌNG
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rooms', 'seat_layout_id')) {
+                $output .= "<b>6. rooms.seat_layout_id:</b> ĐÃ TỒN TẠI.<br>";
+            } else {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE rooms ADD seat_layout_id BIGINT UNSIGNED NULL AFTER cinema_id");
+                $output .= "<b>6. rooms.seat_layout_id:</b> ĐÃ TẠO MỚI (đây là lý do seat_layout_id bị null!).<br>";
+            }
+
+            // 7. Kiểm tra cột room_type cũ đã bị xóa chưa
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rooms', 'room_type')) {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE rooms DROP COLUMN room_type");
+                $output .= "<b>7. rooms.room_type (cũ):</b> ĐÃ XÓA.<br>";
+            } else {
+                $output .= "<b>7. rooms.room_type (cũ):</b> Không tồn tại (OK).<br>";
+            }
+
+            return $output . "<br>--- HỆ THỐNG ĐÃ ĐƯỢC FIX ---";
         } catch (\Exception $e) {
-            return "<b>LỖI CỰC NGHIÊM TRỌNG:</b> " . $e->getMessage();
+            return "<b>LỖI:</b> " . $e->getMessage();
         }
     });
 
