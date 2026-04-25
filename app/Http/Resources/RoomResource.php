@@ -15,6 +15,7 @@ class RoomResource extends JsonResource
             'capacity' => $this->capacity,
             'room_type' => $this->room_type,
             'status' => $this->status,
+            'cinema' => $this->whenLoaded('cinema', fn() => $this->cinema->cinema_name),
         ];
     }
 }
