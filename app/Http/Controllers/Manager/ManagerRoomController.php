@@ -31,11 +31,19 @@ class ManagerRoomController extends Controller
         // seat_layout_id đã có trong $fillable nên tạo thẳng vào 1 lần luôn
         $room = Room::create($data); // cinema_id auto-assigned by BelongsToCinema
 
+        // Đảm bảo seat_layout_id được lưu đúng vào DB
         if (!empty($data['seat_layout_id'])) {
+            // Dùng DB raw để chắc chắn 100% ghi vào DB
+            \Illuminate\Support\Facades\DB::table('rooms')
+                ->where('room_id', $room->room_id)
+                ->update(['seat_layout_id' => $data['seat_layout_id']]);
+
             $this->applySeatLayout($room->room_id, $data['seat_layout_id']);
         }
 
-        return new RoomResource($room->load('roomType', 'seatLayout'));
+        // Reload từ DB để response trả về dữ liệu thật (không phải in-memory)
+        $room = Room::with('roomType', 'seatLayout')->find($room->room_id);
+        return new RoomResource($room);
     }
 
     private function applySeatLayout($roomId, $layoutId)
