@@ -10,20 +10,23 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libpng-dev \
     libjpeg-dev \
+    libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Cài PHP extensions cần thiết cho Laravel + MySQL
-RUN docker-php-ext-install \
+# Cài PHP extensions cần thiết cho Laravel + MySQL + QR Code
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
     pdo \
     pdo_mysql \
     mbstring \
     exif \
     pcntl \
     bcmath \
-    zip
+    zip \
+    gd
 
 # Cài Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
