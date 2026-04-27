@@ -56,48 +56,69 @@ class Room extends Model
     public function getValidSeatCountAttribute(): int
     {
         $activeStatuses = ['active', 'available', 'active_seat'];
+        // Các loại ghế KHÔNG được tính vào sức chứa bán vé
+        $invalidTypes = ['aisle', 'empty', 'broken', 'trash'];
 
+        // Nếu chưa có ghế nào trong DB, trả về capacity
         if (!$this->seats()->exists()) {
             return (int) $this->capacity;
         }
 
+        // Đếm ghế đôi (couple): 2 ô tính là 1 vị trí
         $activeCoupleBlocks = $this->seats()
             ->whereIn('seat_type', ['couple', 'double'])
             ->whereIn('status', $activeStatuses)
             ->count();
         
+        // Đếm ghế đơn (standard, vip, v.v.): 1 ô tính là 1 vị trí
         $activeOtherSeats = $this->seats()
-            ->whereNotIn('seat_type', ['couple', 'double'])
+            ->whereNotIn('seat_type', array_merge(['couple', 'double'], $invalidTypes))
             ->whereIn('status', $activeStatuses)
             ->count();
 
         return $activeOtherSeats + (int)($activeCoupleBlocks / 2);
     }
 
+    /**
+     * Accessor: Tổng số ô có thể đặt ghế (Ma trận R x C - Lối đi)
+     */
     public function getTotalSeatCountAttribute(): int
     {
-        $layout = $this->seatLayout;
-        if (!$layout) {
-            $layout = SeatLayout::find($this->seat_layout_id);
-        }
-
-        if ($layout && !empty($layout->layout_data)) {
-            $totalCells = 0;
-            $aisleCount = 0;
+        $layout = $this->seatLayout ?: SeatLayout::withoutGlobalScopes()->find($this->seat_layout_id);
+        
+        if ($layout) {
+            $rowCount = (int) $layout->row_count;
+            $colCount = (int) $layout->column_count;
+            $totalGrid = $rowCount * $colCount;
             
-            foreach ($layout->layout_data as $row) {
-                if (!isset($row['seats']) || !is_array($row['seats'])) continue;
-                foreach ($row['seats'] as $seat) {
-                    $totalCells++;
-                    if (isset($seat['type']) && (strtolower($seat['type']) === 'aisle' || strtolower($seat['type']) === 'empty')) {
-                        $aisleCount++;
+            $aisleCount = 0;
+            $data = $layout->layout_data;
+            
+            if (is_array($data)) {
+                foreach ($data as $row) {
+                    // Trường hợp nested (mảng các row, mỗi row có seats)
+                    if (isset($row['seats']) && is_array($row['seats'])) {
+                        foreach ($row['seats'] as $seat) {
+                            $type = strtolower($seat['type'] ?? '');
+                            if ($type === 'aisle' || $type === 'empty') $aisleCount++;
+                        }
+                    } 
+                    // Trường hợp flat (mảng các ô ghế trực tiếp)
+                    else if (is_array($row) && isset($row['type'])) {
+                        $type = strtolower($row['type']);
+                        if ($type === 'aisle' || $type === 'empty') $aisleCount++;
                     }
                 }
             }
-            return $totalCells - $aisleCount;
+            
+            // Nếu có row_count/col_count thì dùng công thức R*C - Aisle
+            if ($totalGrid > 0) {
+                return $totalGrid - $aisleCount;
+            }
         }
 
-        return $this->seats()->count() ?: (int) $this->capacity;
+        // Fallback: Nếu không tính được theo sơ đồ, đếm tất cả records ghế trong DB
+        return (int) ($this->seats()->count() ?: $this->capacity);
     }
 
     public function hasFutureShowtimes(): bool
@@ -114,23 +135,23 @@ class Room extends Model
             ->exists();
     }
 
+    /**
+     * Đồng bộ cột capacity trong DB với số ghế thực tế đang hoạt động
+     */
     public function refreshCapacity()
     {
-        $activeCoupleBlocks = $this->seats()->whereIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
-        $activeOtherSeats = $this->seats()->whereNotIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
-        
-        $newCapacity = $activeOtherSeats + (int)($activeCoupleBlocks / 2);
-
-        $this->capacity = $newCapacity;
+        $this->capacity = $this->valid_seat_count;
         $this->saveQuietly();
-        
-        return $newCapacity;
+        return $this->capacity;
     }
 
+    /**
+     * Đồng bộ bảng seats của phòng dựa trên mẫu sơ đồ (seat_layout_id)
+     */
     public function syncSeatsFromLayout()
     {
-        $layout = $this->seatLayout;
-        if (!$layout || empty($layout->layout_data)) return;
+        $layout = $this->seatLayout ?: SeatLayout::find($this->seat_layout_id);
+        if (!$layout || empty($layout->layout_data)) return false;
 
         if ($this->showtimes()->whereHas('tickets')->exists()) {
             return false;
@@ -141,32 +162,46 @@ class Room extends Model
 
             $seatsToInsert = [];
             $now = now();
+            $data = $layout->layout_data;
 
-            foreach ($layout->layout_data as $y => $row) {
-                if (!isset($row['seats']) || !is_array($row['seats'])) continue;
-
-                foreach ($row['seats'] as $x => $seat) {
-                    $type = strtolower($seat['type'] ?? '');
-                    if (empty($type) || $type === 'aisle' || $type === 'empty') continue;
-
-                    if ($type === 'regular' || $type === 'standard') $type = 'normal';
-                    if ($type === 'double') $type = 'couple';
-
-                    $status = strtolower($seat['status'] ?? 'active');
-
-                    $seatsToInsert[] = [
-                        'room_id'    => $this->room_id,
-                        'row_label'  => strtoupper($row['label'] ?? ''),
-                        'seat_number'=> count(array_filter($seatsToInsert, fn($s) => $s['row_label'] === strtoupper($row['label'] ?? ''))) + 1,
-                        'seat_type'  => $type,
-                        'grid_x'     => $x,
-                        'grid_y'     => $y,
-                        'pair_uuid'  => $seat['pair_uuid'] ?? ($seat['pair'] ?? null),
-                        'status'     => $status,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
+            // Chuyển đổi layout_data thành danh sách phẳng nếu đang là nested
+            $flatSeats = [];
+            foreach ($data as $y => $item) {
+                if (isset($item['seats']) && is_array($item['seats'])) {
+                    foreach ($item['seats'] as $x => $s) {
+                        $s['grid_x'] = $x;
+                        $s['grid_y'] = $y;
+                        $s['row_label'] = $item['label'] ?? '';
+                        $flatSeats[] = $s;
+                    }
+                } else {
+                    $flatSeats[] = $item;
                 }
+            }
+
+            foreach ($flatSeats as $s) {
+                $type = strtolower($s['type'] ?? $s['seat_type'] ?? '');
+                if (empty($type) || $type === 'aisle' || $type === 'empty') continue;
+
+                if ($type === 'regular' || $type === 'standard') $type = 'normal';
+                if ($type === 'double') $type = 'couple';
+
+                // Nếu là ghế hư (broken/trash), cho dù status là gì cũng sẽ không được tính là active
+                $status = strtolower($s['status'] ?? 'active');
+                if (in_array($type, ['broken', 'trash'])) $status = 'broken';
+
+                $seatsToInsert[] = [
+                    'room_id'    => $this->room_id,
+                    'row_label'  => strtoupper($s['row_label'] ?? $s['label'] ?? ''),
+                    'seat_number'=> $s['seat_number'] ?? (count(array_filter($seatsToInsert, fn($exist) => $exist['row_label'] === strtoupper($s['row_label'] ?? $s['label'] ?? ''))) + 1),
+                    'seat_type'  => $type,
+                    'grid_x'     => $s['grid_x'] ?? ($s['col'] ?? 0),
+                    'grid_y'     => $s['grid_y'] ?? ($s['row'] ?? 0),
+                    'pair_uuid'  => $s['pair_uuid'] ?? ($s['pair'] ?? null),
+                    'status'     => $status,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
             }
 
             if (count($seatsToInsert) > 0) {
