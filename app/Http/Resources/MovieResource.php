@@ -24,6 +24,8 @@ class MovieResource extends JsonResource
             'trailer_url' => $this->trailer_url,
             'director' => $this->director,
             'actors' => $this->actors,
+            'country' => $this->country,
+            'producer' => $this->producer,
             'status' => $this->display_status,
             'genres' => $this->whenLoaded('genres', function() {
                 return $this->genres->pluck('genre_name');
