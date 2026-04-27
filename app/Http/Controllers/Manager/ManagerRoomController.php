@@ -160,20 +160,8 @@ class ManagerRoomController extends Controller
         $room->update($roomData);
 
         if ($request->filled('seat_layout_id')) {
-            $hasTickets = Ticket::whereHas('showtime', function($q) use ($room) {
-                $q->where('room_id', $room->room_id);
-            })->exists();
-
-            if ($hasTickets) {
-                return response()->json([
-                    'message' => 'Không thể thay đổi sơ đồ vì phòng đã có giao dịch phát sinh.'
-                ], 400);
-            }
-
-            // Xóa ghế cũ
-            Seat::where('room_id', $room->room_id)->delete();
-            // Bơm ghế mới
-            $this->applySeatLayout($room->room_id, $request->seat_layout_id);
+            // Đồng bộ ghế mới từ layout
+            $room->syncSeatsFromLayout();
         }
 
         return new RoomResource($room);

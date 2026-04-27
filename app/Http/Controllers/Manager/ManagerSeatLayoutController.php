@@ -56,6 +56,13 @@ class ManagerSeatLayoutController extends Controller
         ]);
 
         $layout->update($data);
+
+        // Tự động đồng bộ lại tất cả các phòng đang sử dụng LAYOUT này
+        $rooms = \App\Models\Room::where('seat_layout_id', $layout->layout_id)->get();
+        foreach ($rooms as $room) {
+            $room->syncSeatsFromLayout();
+        }
+
         return response()->json(['data' => $layout]);
     }
 
