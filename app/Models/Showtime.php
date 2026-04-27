@@ -24,6 +24,9 @@ class Showtime extends Model
         'start_time',
         'end_time',
         'ticket_price',
+        'price_standard',
+        'price_vip',
+        'price_double',
         'status',
     ];
 

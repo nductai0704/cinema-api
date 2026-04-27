@@ -44,7 +44,28 @@ class BookingController extends Controller
             return response()->json(['message' => 'Một hoặc nhiều ghế đang được giữ.'], 422);
         }
 
-        $totalAmount = $showtime->ticket_price * count($seatIds);
+        $seats = \App\Models\Seat::whereIn('seat_id', $seatIds)->get()->keyBy('seat_id');
+        $totalTicketAmount = 0;
+        $ticketDataList = [];
+
+        foreach ($seatIds as $seatId) {
+            $seat = $seats->get($seatId);
+            $type = $seat ? strtolower($seat->seat_type) : 'normal';
+
+            if (in_array($type, ['couple', 'double'])) {
+                $price = $showtime->price_double ?: $showtime->ticket_price;
+            } elseif ($type === 'vip') {
+                $price = $showtime->price_vip ?: $showtime->ticket_price;
+            } else {
+                $price = $showtime->price_standard ?: $showtime->ticket_price;
+            }
+
+            $totalTicketAmount += $price;
+            $ticketDataList[$seatId] = $price;
+        }
+
+        $totalAmount = $totalTicketAmount;
+        
         $booking = Booking::create([
             'user_id' => $user->user_id,
             'booking_time' => now(),
@@ -58,8 +79,8 @@ class BookingController extends Controller
                 'showtime_id' => $showtime->showtime_id,
                 'seat_id' => $seatId,
                 'ticket_code' => Str::upper(Str::random(10)),
-                'qr_code' => Str::uuid()->toString(),
-                'ticket_price' => $showtime->ticket_price,
+                'qr_code' => (string) Str::uuid(),
+                'ticket_price' => $ticketDataList[$seatId],
                 'status' => 'booked',
             ]);
         }

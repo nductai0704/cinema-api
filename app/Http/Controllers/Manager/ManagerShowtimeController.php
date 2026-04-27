@@ -37,7 +37,10 @@ class ManagerShowtimeController extends Controller
                 'room_id' => 'required|integer',
                 'show_date' => 'required|date_format:Y-m-d',
                 'start_time' => 'required|date_format:H:i',
-                'ticket_price' => 'required|numeric|min:0',
+                'ticket_price' => 'nullable|numeric|min:0',
+                'price_standard' => 'required|numeric|min:0',
+                'price_vip' => 'required|numeric|min:0',
+                'price_double' => 'required|numeric|min:0',
             ]);
 
             $movie = Movie::find($data['movie_id']);
@@ -113,7 +116,10 @@ class ManagerShowtimeController extends Controller
                 'movie_id' => 'required|integer',
                 'room_id' => 'required|integer',
                 'show_date' => 'required|date_format:Y-m-d',
-                'ticket_price' => 'required|numeric|min:0',
+                'ticket_price' => 'nullable|numeric|min:0',
+                'price_standard' => 'required|numeric|min:0',
+                'price_vip' => 'required|numeric|min:0',
+                'price_double' => 'required|numeric|min:0',
                 'showtimes' => 'required|array|min:1',
                 'showtimes.*.start_time' => 'required|date_format:H:i',
                 'showtimes.*.end_time' => 'nullable|date_format:H:i',
@@ -124,6 +130,9 @@ class ManagerShowtimeController extends Controller
             $roomId = $request->room_id;
             $showDate = $request->show_date;
             $ticketPrice = $request->ticket_price;
+            $priceStandard = $request->price_standard;
+            $priceVip = $request->price_vip;
+            $priceDouble = $request->price_double;
             $bulkShowtimes = $request->showtimes;
 
             $movie = Movie::find($movieId);
@@ -197,7 +206,7 @@ class ManagerShowtimeController extends Controller
                 }
             }
 
-            return \Illuminate\Support\Facades\DB::transaction(function () use ($movieId, $roomId, $showDate, $ticketPrice, $newSessions) {
+            return \Illuminate\Support\Facades\DB::transaction(function () use ($movieId, $roomId, $showDate, $ticketPrice, $priceStandard, $priceVip, $priceDouble, $newSessions) {
                 $results = [];
                 foreach ($newSessions as $session) {
                     $st = Showtime::create([
@@ -208,6 +217,9 @@ class ManagerShowtimeController extends Controller
                         'start_time' => $session['start']->format('H:i:s'),
                         'end_time' => $session['end']->format('H:i:s'),
                         'ticket_price' => $ticketPrice,
+                        'price_standard' => $priceStandard,
+                        'price_vip' => $priceVip,
+                        'price_double' => $priceDouble,
                         'status' => 'active',
                     ]);
                     $results[] = $st->load(['movie.genres', 'roomType']);
