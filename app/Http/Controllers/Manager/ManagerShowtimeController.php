@@ -237,4 +237,90 @@ class ManagerShowtimeController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
+    public function update(Request $request, $id)
+    {
+        $showtime = Showtime::findOrFail($id);
+        $ticketsSold = $showtime->tickets()->count();
+
+        // Rules based on tickets sold
+        if ($ticketsSold > 0) {
+            // Already sold tickets: Restrict to only prices and status
+            $data = $request->validate([
+                'price_standard' => 'sometimes|numeric|min:0',
+                'price_vip'      => 'sometimes|numeric|min:0',
+                'price_double'   => 'sometimes|numeric|min:0',
+                'status'         => 'sometimes|string|in:active,inactive,cancelled',
+            ]);
+        } else {
+            // No tickets sold: Full flex
+            $data = $request->validate([
+                'movie_id'       => 'sometimes|integer',
+                'room_id'        => 'sometimes|integer',
+                'show_date'      => 'sometimes|date_format:Y-m-d',
+                'start_time'     => 'sometimes|date_format:H:i',
+                'price_standard' => 'sometimes|numeric|min:0',
+                'price_vip'      => 'sometimes|numeric|min:0',
+                'price_double'   => 'sometimes|numeric|min:0',
+                'status'         => 'sometimes|string|in:active,inactive,cancelled',
+            ]);
+
+            // Conflict check if time/room changes
+            if ($request->hasAny(['room_id', 'show_date', 'start_time'])) {
+                $checkRoomId = $request->input('room_id', $showtime->room_id);
+                $checkDate   = $request->input('show_date', $showtime->show_date);
+                $checkStart  = $request->input('start_time', $showtime->start_time);
+                
+                $movie = Movie::find($request->input('movie_id', $showtime->movie_id));
+                $duration = $movie ? (int)$movie->duration : 120;
+                
+                $startTimeObj = Carbon::parse($checkDate . ' ' . $checkStart);
+                $endTimeObj   = $startTimeObj->copy()->addMinutes($duration);
+                $cleaningTime = (int) config('cinema.cleaning_time_minutes', 15);
+                
+                $newStart = $startTimeObj->copy();
+                $newEnd   = $endTimeObj->copy()->addMinutes($cleaningTime);
+
+                $conflicts = Showtime::where('room_id', $checkRoomId)
+                    ->where('show_date', $checkDate)
+                    ->where('showtime_id', '!=', $id) // Ignore self
+                    ->where('status', 'active')
+                    ->get()
+                    ->filter(function ($exist) use ($newStart, $newEnd, $cleaningTime) {
+                        $existStart = $exist->start_date_time;
+                        $existEndClean = $exist->end_date_time->addMinutes($cleaningTime);
+                        return ($newStart->lt($existEndClean) && $newEnd->gt($existStart));
+                    });
+
+                if ($conflicts->count() > 0) {
+                    return response()->json(['message' => 'Lịch chiếu mới bị trùng hoặc quá sát giờ nghỉ.'], 409);
+                }
+
+                $data['start_time'] = $startTimeObj->format('H:i:s');
+                $data['end_time']   = $endTimeObj->format('H:i:s');
+            }
+        }
+
+        $showtime->update($data);
+
+        return response()->json([
+            'message' => 'Cập nhật suất chiếu thành công.',
+            'data' => new ManagerShowtimeResource($showtime->load(['movie.genres', 'room.roomType', 'roomType']))
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $showtime = Showtime::findOrFail($id);
+        $ticketsSold = $showtime->tickets()->count();
+
+        if ($ticketsSold > 0) {
+            return response()->json([
+                'message' => 'Không thể xóa suất chiếu đã bán vé. Vui lòng chuyển trạng thái sang "Cancelled" (Đã hủy) thay vì xóa.'
+            ], 400);
+        }
+
+        $showtime->delete();
+
+        return response()->json(['message' => 'Đã xóa suất chiếu thành công.']);
+    }
 }
