@@ -18,6 +18,17 @@ class Seat extends Model
         });
     }
 
+    protected static function booted()
+    {
+        static::saved(function ($seat) {
+            $seat->room?->refreshCapacity();
+        });
+
+        static::deleted(function ($seat) {
+            $seat->room?->refreshCapacity();
+        });
+    }
+
     protected $table = 'seats';
     protected $primaryKey = 'seat_id';
     public $timestamps = true;

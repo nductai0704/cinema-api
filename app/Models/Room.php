@@ -106,4 +106,20 @@ class Room extends Model
             })
             ->exists();
     }
+
+    /**
+     * Đồng bộ cột capacity trong DB với số ghế thực tế đang hoạt động
+     */
+    public function refreshCapacity()
+    {
+        $activeCoupleBlocks = $this->seats()->whereIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
+        $activeOtherSeats = $this->seats()->whereNotIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
+        
+        $newCapacity = $activeOtherSeats + (int)($activeCoupleBlocks / 2);
+
+        $this->capacity = $newCapacity;
+        $this->saveQuietly(); // Dùng saveQuietly để tránh gây ra loop nếu có observer khác
+        
+        return $newCapacity;
+    }
 }
