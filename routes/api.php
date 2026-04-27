@@ -128,6 +128,7 @@ Route::prefix('v1')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('users/me', [UserController::class, 'me']);
         Route::put('users/me', [UserController::class, 'update']);
+        Route::post('users/me/change-password', [UserController::class, 'changePassword']);
 
         Route::post('showtimes/{showtime_id}/holds', [SeatHoldController::class, 'store']);
         Route::get('showtimes/{showtime_id}/holds', [SeatHoldController::class, 'index']);

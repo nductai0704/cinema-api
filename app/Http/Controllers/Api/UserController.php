@@ -28,4 +28,28 @@ class UserController extends Controller
 
         return response()->json($user->fresh()->load('role', 'cinema'));
     }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Mật khẩu hiện tại không chính xác.'
+            ], 422);
+        }
+
+        $user->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->new_password)
+        ]);
+
+        return response()->json([
+            'message' => 'Đổi mật khẩu thành công.'
+        ]);
+    }
 }
