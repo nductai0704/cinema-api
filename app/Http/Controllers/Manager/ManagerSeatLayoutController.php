@@ -8,11 +8,16 @@ use Illuminate\Http\Request;
 
 class ManagerSeatLayoutController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Trait auto scopes to manager's cinema
+        $query = SeatLayout::query();
+        
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         return response()->json([
-            'data' => SeatLayout::all()
+            'data' => $query->get()
         ]);
     }
 

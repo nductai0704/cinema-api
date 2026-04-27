@@ -15,7 +15,26 @@ class ManagerRoomController extends Controller
     public function index()
     {
         // Trait autoscopes to the manager's cinema
-        $rooms = Room::with('cinema', 'roomType', 'seatLayout')->withCount('seats')->paginate(10);
+        $rooms = Room::with(['cinema', 'roomType', 'seatLayout'])
+            ->withCount(['seats as total_seats'])
+            ->paginate(15);
+
+        // Transform collection to add 'usable_seats_count' (counting double seats as 1 position)
+        $rooms->getCollection()->transform(function ($room) {
+            // Count double seats as pairs
+            $doubleSeatsCount = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', 'double')
+                ->where('status', 'active')
+                ->count();
+            
+            $otherSeatsCount = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', '!=', 'double')
+                ->where('status', 'active')
+                ->count();
+
+            $room->usable_seats_count = $otherSeatsCount + (int)($doubleSeatsCount / 2);
+            return $room;
+        });
 
         // Tính tổng sức chứa của cả rạp (chỉ ghế active trong các phòng active)
         $cinemaCapacity = Room::where('status', 'active')->sum('capacity');
@@ -31,7 +50,12 @@ class ManagerRoomController extends Controller
             'room_name'       => 'required|string|max:100',
             'capacity'        => 'required|integer|min:1',
             'room_type_id'    => 'required|exists:room_types,room_type_id',
-            'seat_layout_id'  => 'nullable|exists:seat_layouts,layout_id',
+            'seat_layout_id'  => [
+                'nullable',
+                \Illuminate\Validation\Rule::exists('seat_layouts', 'layout_id')->where(function ($query) {
+                    $query->where('status', 'active');
+                }),
+            ],
             'status'          => 'nullable|string|in:active,inactive,maintenance',
         ]);
 

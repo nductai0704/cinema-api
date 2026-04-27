@@ -10,16 +10,17 @@ class RoomResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'room_id'          => $this->room_id,
-            'room_name'        => $this->room_name,
-            'capacity'         => $this->capacity,       // Tổng ghế usable (tự động cập nhật khi tạo ghế)
-            'seats_count'      => $this->seats_count ?? null, // Withcount từ controller
-            'room_type_id'     => $this->room_type_id,
-            'room_type'        => $this->whenLoaded('roomType', fn() => $this->roomType->name),
-            'seat_layout_id'   => $this->seat_layout_id,
-            'seat_layout_name' => $this->whenLoaded('seatLayout', fn() => $this->seatLayout?->name),
-            'status'           => $this->status,
-            'cinema'           => $this->whenLoaded('cinema', fn() => $this->cinema->cinema_name),
+            'room_id'           => $this->room_id,
+            'room_name'         => $this->room_name,
+            'capacity'          => $this->capacity, // Giá trị lưu trong DB
+            'usable_seats_count'=> $this->usable_seats_count ?? $this->capacity, // Giá trị tính toán động
+            'total_seats'       => $this->total_seats ?? null, // Tổng số hàng trong bảng seats
+            'room_type_id'      => $this->room_type_id,
+            'room_type'         => $this->whenLoaded('roomType', fn() => $this->roomType->name),
+            'seat_layout_id'    => $this->seat_layout_id,
+            'seat_layout_name'  => $this->whenLoaded('seatLayout', fn() => $this->seatLayout?->name),
+            'status'            => $this->status,
+            'cinema'            => $this->whenLoaded('cinema', fn() => $this->cinema->cinema_name),
         ];
     }
 }
