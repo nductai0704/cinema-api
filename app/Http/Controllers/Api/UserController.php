@@ -27,19 +27,18 @@ class UserController extends Controller
         ]);
 
         if (isset($data['password'])) {
-            // Xác thực mật khẩu cũ
-            if (!\Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password)) {
+            // Xác thực mật khẩu cũ - Dùng password_hash theo DB của dự án
+            if (!\Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password_hash)) {
                 return response()->json([
                     'message' => 'Mật khẩu hiện tại không chính xác.'
                 ], 422);
             }
-            $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
-        } else {
-            unset($data['password']);
+            $data['password_hash'] = \Illuminate\Support\Facades\Hash::make($data['password']);
         }
 
-        // Luôn loại bỏ current_password trước khi update
+        // Loại bỏ các field không có trong DB hoặc đã xử lý
         unset($data['current_password']);
+        unset($data['password']);
         
         $user->update($data);
 
@@ -55,14 +54,14 @@ class UserController extends Controller
 
         $user = $request->user();
 
-        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password_hash)) {
             return response()->json([
                 'message' => 'Mật khẩu hiện tại không chính xác.'
             ], 422);
         }
 
         $user->update([
-            'password' => \Illuminate\Support\Facades\Hash::make($request->new_password)
+            'password_hash' => \Illuminate\Support\Facades\Hash::make($request->new_password)
         ]);
 
         return response()->json([
