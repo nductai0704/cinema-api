@@ -15,7 +15,7 @@ class ManagerShowtimeResource extends JsonResource
             'movie_title' => $this->movie?->title,
             'room_id' => $this->room_id,
             'room_name' => $this->room?->room_name,
-            'room_type_name' => $this->room?->roomType?->name, // Đây là cái user cần
+            'room_type_name' => $this->roomType?->name ?? $this->room?->roomType?->name, // Ưu tiên loại phòng của SUẤT CHIẾU, fallback về PHÒNG
             'show_date' => $this->show_date?->format('Y-m-d'),
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,

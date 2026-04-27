@@ -18,6 +18,7 @@ class Showtime extends Model
     protected $fillable = [
         'movie_id',
         'room_id',
+        'room_type_id',
         'cinema_id',
         'show_date',
         'start_time',
@@ -30,6 +31,11 @@ class Showtime extends Model
         'show_date' => 'date',
         'ticket_price' => 'decimal:2',
     ];
+
+    public function roomType()
+    {
+        return $this->belongsTo(RoomType::class, 'room_type_id', 'room_type_id');
+    }
 
     public function movie()
     {

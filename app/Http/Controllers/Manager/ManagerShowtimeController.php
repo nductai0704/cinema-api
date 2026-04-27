@@ -109,6 +109,7 @@ class ManagerShowtimeController extends Controller
                 'showtimes' => 'required|array|min:1',
                 'showtimes.*.start_time' => 'required|date_format:H:i',
                 'showtimes.*.end_time' => 'nullable|date_format:H:i',
+                'showtimes.*.format' => 'nullable|string', // VD: "2D", "IMAX"
             ]);
 
             $movieId = $request->movie_id;
@@ -123,6 +124,9 @@ class ManagerShowtimeController extends Controller
             if (!$movie || !$room) {
                 return response()->json(['message' => 'Phim hoặc Phòng chiếu không tồn tại.'], 404);
             }
+
+            // Lấy danh sách RoomType của Cinema hiện tại để map tên -> ID
+            $roomTypes = \App\Models\RoomType::all()->pluck('room_type_id', 'name');
 
             $duration = (int) ($movie->duration ?? 0);
             $cleaningTime = (int) config('cinema.cleaning_time_minutes', 15);
@@ -139,11 +143,15 @@ class ManagerShowtimeController extends Controller
                     $end = Carbon::parse("$showDate {$st['end_time']}");
                 }
 
+                // Tìm room_type_id từ tên format gửi lên
+                $roomTypeId = isset($st['format']) ? ($roomTypes[strtoupper($st['format'])] ?? null) : null;
+
                 $newSessions[] = [
                     'start' => $start,
                     'end' => $end,
                     'label' => "{$st['start_time']} - " . $end->format('H:i'),
-                    'original_idx' => $idx
+                    'original_idx' => $idx,
+                    'room_type_id' => $roomTypeId
                 ];
             }
 
@@ -198,13 +206,14 @@ class ManagerShowtimeController extends Controller
                     $st = Showtime::create([
                         'movie_id' => $movieId,
                         'room_id' => $roomId,
+                        'room_type_id' => $session['room_type_id'], // Đã map từ format string
                         'show_date' => $showDate,
                         'start_time' => $session['start']->format('H:i:s'),
                         'end_time' => $session['end']->format('H:i:s'),
                         'ticket_price' => $ticketPrice,
                         'status' => 'active',
                     ]);
-                    $results[] = $st;
+                    $results[] = $st->load('roomType');
                     $createdCount++;
                 }
 

@@ -84,12 +84,12 @@ Route::prefix('v1')->group(function () {
                 $output .= "<b>6. rooms.seat_layout_id:</b> ĐÃ TẠO MỚI (đây là lý do seat_layout_id bị null!).<br>";
             }
 
-            // 7. Kiểm tra cột room_type cũ đã bị xóa chưa
-            if (\Illuminate\Support\Facades\Schema::hasColumn('rooms', 'room_type')) {
-                \Illuminate\Support\Facades\DB::statement("ALTER TABLE rooms DROP COLUMN room_type");
-                $output .= "<b>7. rooms.room_type (cũ):</b> ĐÃ XÓA.<br>";
+            // 8. Kiểm tra cột room_type_id trong showtimes
+            if (\Illuminate\Support\Facades\Schema::hasColumn('showtimes', 'room_type_id')) {
+                $output .= "<b>8. showtimes.room_type_id:</b> ĐÃ TỒN TẠI.<br>";
             } else {
-                $output .= "<b>7. rooms.room_type (cũ):</b> Không tồn tại (OK).<br>";
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE showtimes ADD room_type_id BIGINT UNSIGNED NULL AFTER room_id");
+                $output .= "<b>8. showtimes.room_type_id:</b> ĐÃ TẠO MỚI.<br>";
             }
 
             return $output . "<br>--- HỆ THỐNG ĐÃ ĐƯỢC FIX ---";
