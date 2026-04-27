@@ -22,8 +22,7 @@ class ManagerRoomController extends Controller
         $rooms->getCollection()->transform(function ($room) {
             $roomId = $room->room_id;
 
-            // 1. Số ghế HỢP LỆ (Dành cho tử số)
-            // Ghế đôi đếm là 1 chỗ ngồi
+            // 1. Số ghế HỢP LỆ (Dành cho tử số: usable positions)
             $activeCoupleBlocks = Seat::where('room_id', $roomId)
                 ->whereIn('seat_type', ['couple', 'double'])
                 ->where('status', 'active')
@@ -34,13 +33,27 @@ class ManagerRoomController extends Controller
                 ->where('status', 'active')
                 ->count();
 
-            // valid_seat_count: Ghế đôi đếm là 1
             $room->valid_seat_count = $activeSingleSeats + (int)($activeCoupleBlocks / 2);
 
-            // 2. TỔNG SỐ CHỖ (Dành cho mẫu số)
-            // Đếm tất cả "chỗ có thể tạo ghế" = tất cả record trong bảng seats (vì đã loại lối đi)
-            // Lưu ý: Ở đây đếm theo Ô (blocks), không chia 2 cho ghế đôi theo yêu cầu "đếm chỗ"
-            $room->total_seat_count = Seat::where('room_id', $roomId)->count();
+            // 2. TỔNG SỐ CHỖ (Dành cho mẫu số: Total Grid - Aisles)
+            if ($room->seatLayout && !empty($room->seatLayout->layout_data)) {
+                $totalCells = 0;
+                $aisleCount = 0;
+                
+                foreach ($room->seatLayout->layout_data as $row) {
+                    if (!isset($row['seats']) || !is_array($row['seats'])) continue;
+                    foreach ($row['seats'] as $seat) {
+                        $totalCells++;
+                        if (isset($seat['type']) && strtolower($seat['type']) === 'aisle') {
+                            $aisleCount++;
+                        }
+                    }
+                }
+                $room->total_seat_count = $totalCells - $aisleCount;
+            } else {
+                // Fallback nếu chưa có sơ đồ
+                $room->total_seat_count = $room->capacity;
+            }
             
             return $room;
         });
