@@ -132,6 +132,7 @@ class CustomerPublicController extends Controller
                 'movie_id'   => $movie->movie_id,
                 'movie_title' => $movie->title,
                 'poster_url' => $movie->poster_url,
+                'trailer_url'=> $movie->trailer_url,
                 'duration'   => $movie->duration,
                 'age_limit'  => $movie->age_limit,
                 'genres'     => $movie->genres->map(fn($g) => [
