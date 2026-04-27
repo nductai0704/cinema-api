@@ -20,35 +20,32 @@ class ManagerRoomController extends Controller
 
         // Transform collection to calculate detailed capacities
         $rooms->getCollection()->transform(function ($room) {
-            // 1. Số ghế HỢP LỆ (Chỉ active và không tính lối đi)
-            // Ghế đôi (couple) đếm 2 ô là 1 chỗ
-            $validCoupleBlocks = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', 'couple')
+            $roomId = $room->room_id;
+
+            // 1. Số ghế HỢP LỆ (Dành cho tử số)
+            // Ghế đôi đếm là 1 chỗ ngồi
+            $activeCoupleBlocks = Seat::where('room_id', $roomId)
+                ->whereIn('seat_type', ['couple', 'double'])
                 ->where('status', 'active')
                 ->count();
             
-            $validOtherSeats = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', '!=', 'couple')
+            $activeSingleSeats = Seat::where('room_id', $roomId)
+                ->whereNotIn('seat_type', ['couple', 'double'])
                 ->where('status', 'active')
                 ->count();
 
-            $room->valid_seat_count = $validOtherSeats + (int)($validCoupleBlocks / 2);
+            // valid_seat_count: Ghế đôi đếm là 1
+            $room->valid_seat_count = $activeSingleSeats + (int)($activeCoupleBlocks / 2);
 
-            // 2. TỔNG SỐ GHẾ (Tất cả status, không tính lối đi)
-            $totalCoupleBlocks = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', 'couple')
-                ->count();
-            
-            $totalOtherSeats = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', '!=', 'couple')
-                ->count();
-
-            $room->total_seat_count = $totalOtherSeats + (int)($totalCoupleBlocks / 2);
+            // 2. TỔNG SỐ CHỖ (Dành cho mẫu số)
+            // Đếm tất cả "chỗ có thể tạo ghế" = tất cả record trong bảng seats (vì đã loại lối đi)
+            // Lưu ý: Ở đây đếm theo Ô (blocks), không chia 2 cho ghế đôi theo yêu cầu "đếm chỗ"
+            $room->total_seat_count = Seat::where('room_id', $roomId)->count();
             
             return $room;
         });
 
-        // Tính tổng sức chứa của cả rạp (chỉ ghế active trong các phòng active)
+        // Tính tổng sức chứa của cả rạp
         $cinemaCapacity = Room::where('status', 'active')->sum('capacity');
 
         return RoomResource::collection($rooms)->additional([
