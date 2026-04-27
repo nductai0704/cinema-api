@@ -16,23 +16,34 @@ class ManagerRoomController extends Controller
     {
         // Trait autoscopes to the manager's cinema
         $rooms = Room::with(['cinema', 'roomType', 'seatLayout'])
-            ->withCount(['seats as total_seats'])
             ->paginate(15);
 
-        // Transform collection to add 'usable_seats_count' (counting double seats as 1 position)
+        // Transform collection to calculate detailed capacities
         $rooms->getCollection()->transform(function ($room) {
-            // Count double seats as pairs
-            $doubleSeatsCount = Seat::where('room_id', $room->room_id)
+            // 1. Tính số ghế HỢP LỆ (Status = active, không tính lối đi, ghế đôi = 1)
+            $validDouble = Seat::where('room_id', $room->room_id)
                 ->where('seat_type', 'double')
                 ->where('status', 'active')
                 ->count();
             
-            $otherSeatsCount = Seat::where('room_id', $room->room_id)
+            $validOthers = Seat::where('room_id', $room->room_id)
                 ->where('seat_type', '!=', 'double')
                 ->where('status', 'active')
                 ->count();
 
-            $room->usable_seats_count = $otherSeatsCount + (int)($doubleSeatsCount / 2);
+            $room->valid_seat_count = $validOthers + (int)($validDouble / 2);
+
+            // 2. Tính TỔNG SỐ GHẾ trong sơ đồ (Bao gồm cả ghế hư, không tính lối đi, ghế đôi = 1)
+            $totalDouble = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', 'double')
+                ->count();
+            
+            $totalOthers = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', '!=', 'double')
+                ->count();
+
+            $room->total_seat_count = $totalOthers + (int)($totalDouble / 2);
+            
             return $room;
         });
 
