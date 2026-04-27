@@ -62,6 +62,8 @@ class ManagerShowtimeController extends Controller
             $data['end_time'] = $endTime->format('H:i:s');
             // Mặc định lấy loại phòng từ phòng nếu tạo đơn lẻ
             $data['room_type_id'] = $room->room_type_id;
+            // Nếu không truyền ticket_price từ FE, lấy giá standard
+            $data['ticket_price'] = $request->input('ticket_price', $data['price_standard']);
 
             // Conflict Checker
             $cleaningTime = (int) config('cinema.cleaning_time_minutes', 15);
@@ -129,8 +131,8 @@ class ManagerShowtimeController extends Controller
             $movieId = $request->movie_id;
             $roomId = $request->room_id;
             $showDate = $request->show_date;
-            $ticketPrice = $request->ticket_price;
             $priceStandard = $request->price_standard;
+            $ticketPrice = $request->input('ticket_price', $priceStandard);
             $priceVip = $request->price_vip;
             $priceDouble = $request->price_double;
             $bulkShowtimes = $request->showtimes;
