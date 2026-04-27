@@ -18,11 +18,18 @@ class UserController extends Controller
 
         $data = $request->validate([
             'full_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
+            'email' => 'nullable|email|max:255|unique:users,email,' . $user->user_id . ',user_id',
             'phone' => 'nullable|string|max:20',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string|max:10',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
+
+        if (isset($data['password'])) {
+            $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
 
         $user->update($data);
 
