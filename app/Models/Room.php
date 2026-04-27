@@ -153,14 +153,7 @@ class Room extends Model
         $layout = $this->seatLayout ?: SeatLayout::find($this->seat_layout_id);
         if (!$layout || empty($layout->layout_data)) return false;
 
-        if ($this->showtimes()->whereHas('tickets')->exists()) {
-            return false;
-        }
-
         return \Illuminate\Support\Facades\DB::transaction(function () use ($layout) {
-            $this->seats()->delete();
-
-            $seatsToInsert = [];
             $now = now();
             $data = $layout->layout_data;
 
@@ -179,6 +172,7 @@ class Room extends Model
                 }
             }
 
+            $seatsToInsert = [];
             foreach ($flatSeats as $s) {
                 $type = strtolower($s['type'] ?? $s['seat_type'] ?? '');
                 if (empty($type) || $type === 'aisle' || $type === 'empty') continue;
@@ -190,10 +184,13 @@ class Room extends Model
                 $status = strtolower($s['status'] ?? 'active');
                 if (in_array($type, ['broken', 'trash'])) $status = 'broken';
 
+                $rowLabel = strtoupper($s['row_label'] ?? $s['label'] ?? '');
+                $seatNumber = $s['seat_number'] ?? (count(array_filter($seatsToInsert, fn($exist) => $exist['row_label'] === $rowLabel)) + 1);
+
                 $seatsToInsert[] = [
                     'room_id'    => $this->room_id,
-                    'row_label'  => strtoupper($s['row_label'] ?? $s['label'] ?? ''),
-                    'seat_number'=> $s['seat_number'] ?? (count(array_filter($seatsToInsert, fn($exist) => $exist['row_label'] === strtoupper($s['row_label'] ?? $s['label'] ?? ''))) + 1),
+                    'row_label'  => $rowLabel,
+                    'seat_number'=> $seatNumber,
                     'seat_type'  => $type,
                     'grid_x'     => $s['grid_x'] ?? ($s['col'] ?? 0),
                     'grid_y'     => $s['grid_y'] ?? ($s['row'] ?? 0),
@@ -204,8 +201,48 @@ class Room extends Model
                 ];
             }
 
-            if (count($seatsToInsert) > 0) {
-                Seat::insert($seatsToInsert);
+            // Lấy các ghế hiện tại để tránh xóa mất ghế đã có người đặt
+            $existingSeats = $this->seats()->get();
+            $existingMap = [];
+            foreach ($existingSeats as $seat) {
+                $existingMap[$seat->row_label . '_' . $seat->seat_number] = $seat;
+            }
+
+            $newSeatsBatch = [];
+
+            foreach ($seatsToInsert as $newSeat) {
+                $key = $newSeat['row_label'] . '_' . $newSeat['seat_number'];
+
+                if (isset($existingMap[$key])) {
+                    // Update ghế cũ
+                    $seatModel = $existingMap[$key];
+                    $seatModel->update([
+                        'seat_type' => $newSeat['seat_type'],
+                        'grid_x'    => $newSeat['grid_x'],
+                        'grid_y'    => $newSeat['grid_y'],
+                        'pair_uuid' => $newSeat['pair_uuid'],
+                        'status'    => $newSeat['status'],
+                        'updated_at'=> $now,
+                    ]);
+                    unset($existingMap[$key]);
+                } else {
+                    // Ghế mới
+                    $newSeatsBatch[] = $newSeat;
+                }
+            }
+
+            if (count($newSeatsBatch) > 0) {
+                Seat::insert($newSeatsBatch);
+            }
+
+            // Xử lý các ghế bì xóa khỏi sơ đồ (nghĩa là đã biến thành lối đi hoặc không còn)
+            foreach ($existingMap as $oldSeat) {
+                if ($oldSeat->tickets()->exists()) {
+                    // Nếu đã có người mua vé, đánh dấu nó thành broken thay vì xóa hẳn dể khỏi chết DB
+                    $oldSeat->update(['status' => 'broken', 'seat_type' => 'broken']);
+                } else {
+                    $oldSeat->delete();
+                }
             }
 
             $this->refreshCapacity();
