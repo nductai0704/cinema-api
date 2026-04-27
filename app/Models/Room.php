@@ -55,14 +55,12 @@ class Room extends Model
 
     public function getValidSeatCountAttribute(): int
     {
-        // Danh sách các status được coi là "đang hoạt động"
         $activeStatuses = ['active', 'available', 'active_seat'];
 
         if (!$this->seats()->exists()) {
             return (int) $this->capacity;
         }
 
-        // Đếm ghế đôi: 2 ô = 1 chỗ
         $activeCoupleBlocks = $this->seats()
             ->whereIn('seat_type', ['couple', 'double'])
             ->whereIn('status', $activeStatuses)
@@ -76,12 +74,8 @@ class Room extends Model
         return $activeOtherSeats + (int)($activeCoupleBlocks / 2);
     }
 
-    /**
-     * Accessor: Tổng số ô có thể đặt ghế (Ma trận - Lối đi)
-     */
     public function getTotalSeatCountAttribute(): int
     {
-        // Luôn ưu tiên dùng layout_data nếu có
         $layout = $this->seatLayout;
         if (!$layout) {
             $layout = SeatLayout::find($this->seat_layout_id);
@@ -103,7 +97,6 @@ class Room extends Model
             return $totalCells - $aisleCount;
         }
 
-        // Fallback về số lượng record seats nếu không có layout_data
         return $this->seats()->count() ?: (int) $this->capacity;
     }
 
@@ -121,9 +114,6 @@ class Room extends Model
             ->exists();
     }
 
-    /**
-     * Đồng bộ cột capacity trong DB với số ghế thực tế đang hoạt động
-     */
     public function refreshCapacity()
     {
         $activeCoupleBlocks = $this->seats()->whereIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
@@ -137,15 +127,11 @@ class Room extends Model
         return $newCapacity;
     }
 
-    /**
-     * Đồng bộ bảng seats của phòng dựa trên mẫu sơ đồ (seat_layout_id)
-     */
     public function syncSeatsFromLayout()
     {
         $layout = $this->seatLayout;
         if (!$layout || empty($layout->layout_data)) return;
 
-        // Nếu đã có vé bán ra, không tự động sync để tránh mất data (bảo vệ an toàn)
         if ($this->showtimes()->whereHas('tickets')->exists()) {
             return false;
         }
@@ -182,13 +168,13 @@ class Room extends Model
                     ];
                 }
             }
-125: 
-126:             if (count($seatsToInsert) > 0) {
-127:                 Seat::insert($seatsToInsert);
-128:             }
-129: 
-130:             $this->refreshCapacity();
-131:             return true;
-132:         });
-133:     }
-134: }
+
+            if (count($seatsToInsert) > 0) {
+                Seat::insert($seatsToInsert);
+            }
+
+            $this->refreshCapacity();
+            return true;
+        });
+    }
+}
