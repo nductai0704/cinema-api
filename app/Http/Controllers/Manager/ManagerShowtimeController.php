@@ -9,13 +9,15 @@ use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
+use App\Http\Resources\ManagerShowtimeResource;
+
 class ManagerShowtimeController extends Controller
 {
     public function index()
     {
         // Nhờ BelongsToCinema Trait, tự động lọc showtimes của Manager's Cinema
-        $showtimes = Showtime::with(['movie', 'room'])->orderBy('show_date')->orderBy('start_time')->paginate(20);
-        return response()->json($showtimes);
+        $showtimes = Showtime::with(['movie', 'room.roomType'])->orderBy('show_date')->orderBy('start_time')->paginate(20);
+        return ManagerShowtimeResource::collection($showtimes);
     }
 
     public function store(Request $request)
@@ -88,8 +90,8 @@ class ManagerShowtimeController extends Controller
 
     public function show($id)
     {
-        $showtime = Showtime::with(['movie', 'room'])->findOrFail($id);
-        return response()->json($showtime);
+        $showtime = Showtime::with(['movie', 'room.roomType'])->findOrFail($id);
+        return new ManagerShowtimeResource($showtime);
     }
 
     /**
@@ -209,7 +211,7 @@ class ManagerShowtimeController extends Controller
                 return response()->json([
                     'status' => 'success',
                     'message' => "Đã tạo thành công {$createdCount} suất chiếu.",
-                    'data' => $results
+                    'data' => ManagerShowtimeResource::collection($results)
                 ], 201);
             });
 
