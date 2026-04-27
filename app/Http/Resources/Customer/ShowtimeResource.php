@@ -19,6 +19,7 @@ class ShowtimeResource extends JsonResource
             'showtime_id' => $this->showtime_id,
             'movie_id' => $this->movie_id,
             'movie_title' => $this->movie ? $this->movie->title : null,
+            'show_date' => $this->show_date ? $this->show_date->format('Y-m-d') : null,
             'start_time' => Carbon::parse($this->start_time)->format('H:i'),
             'end_time' => Carbon::parse($this->end_time)->format('H:i'),
             'ticket_price' => (float)$this->ticket_price,
