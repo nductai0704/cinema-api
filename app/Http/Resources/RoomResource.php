@@ -12,9 +12,9 @@ class RoomResource extends JsonResource
         return [
             'room_id'           => $this->room_id,
             'room_name'         => $this->room_name,
-            'capacity'          => $this->capacity, // Giá trị lưu trong DB
-            'valid_seat_count'  => $this->valid_seat_count ?? $this->capacity, // Giá trị tính toán động
-            'total_seat_count'  => $this->total_seat_count ?? $this->capacity, // Tổng số hàng trong bảng seats
+            'capacity'          => $this->valid_seat_count, 
+            'valid_seat_count'  => $this->valid_seat_count, 
+            'total_seat_count'  => $this->total_seat_count,
             'room_type_id'      => $this->room_type_id,
             'room_type'         => $this->whenLoaded('roomType', fn() => $this->roomType->name),
             'seat_layout_id'    => $this->seat_layout_id,

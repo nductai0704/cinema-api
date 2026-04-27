@@ -16,7 +16,13 @@ class ManagerRoomController extends Controller
     {
         // Trait autoscopes to the manager's cinema
         $rooms = Room::with(['cinema', 'roomType', 'seatLayout'])
-            ->paginate(15);
+            ->paginate(20);
+
+        // ✅ QUAN TRỌNG: Ép buộc cập nhật lại con số thực tế từ bảng seats cho mỗi phòng
+        // để đảm bảo hiển thị ở trang danh sách luôn là con số mới nhất
+        $rooms->getCollection()->each(function ($room) {
+            $room->refreshCapacity();
+        });
 
         // Tính tổng sức chứa của cả rạp
         $cinemaCapacity = Room::where('status', 'active')->sum('capacity');
