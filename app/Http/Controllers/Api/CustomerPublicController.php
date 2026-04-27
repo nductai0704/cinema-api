@@ -57,12 +57,10 @@ class CustomerPublicController extends Controller
             'rooms.showtimes' => function ($query) use ($id, $now) {
                 $query->where('movie_id', $id)
                       ->where('status', 'active')
+                      ->with('movie', 'roomType', 'room') // Load directly here
                       ->orderBy('show_date')
                       ->orderBy('start_time');
-            },
-            'rooms.showtimes.movie',
-            'rooms.showtimes.roomType',
-            'rooms.showtimes.room'
+            }
         ])->get();
 
         $result = $cinemas->map(function ($cinema) use ($now) {
@@ -130,12 +128,12 @@ class CustomerPublicController extends Controller
 
         $result = $movies->map(function ($movie) {
             return [
-                'movie_id' => $movie->movie_id,
-                'movie_name' => $movie->movie_name,
+                'movie_id'   => $movie->movie_id,
+                'movie_title' => $movie->title,
                 'poster_url' => $movie->poster_url,
-                'duration' => $movie->duration,
-                'age_rating' => $movie->age_rating,
-                'showtimes' => ShowtimeResource::collection($movie->showtimes),
+                'duration'   => $movie->duration,
+                'age_limit'  => $movie->age_limit,
+                'showtimes'  => ShowtimeResource::collection($movie->showtimes),
             ];
         });
 
