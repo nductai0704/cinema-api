@@ -22,15 +22,25 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string|max:10',
+            'current_password' => 'nullable|required_with:password|string',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         if (isset($data['password'])) {
+            // Xác thực mật khẩu cũ
+            if (!\Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password)) {
+                return response()->json([
+                    'message' => 'Mật khẩu hiện tại không chính xác.'
+                ], 422);
+            }
             $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
         } else {
             unset($data['password']);
         }
 
+        // Luôn loại bỏ current_password trước khi update
+        unset($data['current_password']);
+        
         $user->update($data);
 
         return response()->json($user->fresh()->load('role', 'cinema'));
