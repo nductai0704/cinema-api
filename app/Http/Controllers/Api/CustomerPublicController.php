@@ -123,7 +123,8 @@ class CustomerPublicController extends Controller
             },
             'showtimes.movie',
             'showtimes.room',
-            'showtimes.roomType'
+            'showtimes.roomType',
+            'genres'
         ])->get();
 
         $result = $movies->map(function ($movie) {
@@ -133,6 +134,10 @@ class CustomerPublicController extends Controller
                 'poster_url' => $movie->poster_url,
                 'duration'   => $movie->duration,
                 'age_limit'  => $movie->age_limit,
+                'genres'     => $movie->genres->map(fn($g) => [
+                    'genre_id'   => $g->genre_id,
+                    'genre_name' => $g->genre_name
+                ]),
                 'showtimes'  => ShowtimeResource::collection($movie->showtimes),
             ];
         });
