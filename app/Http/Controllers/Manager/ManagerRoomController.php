@@ -20,29 +20,30 @@ class ManagerRoomController extends Controller
 
         // Transform collection to calculate detailed capacities
         $rooms->getCollection()->transform(function ($room) {
-            // 1. Tính số ghế HỢP LỆ (Status = active, không tính lối đi, ghế đôi = 1)
-            $validDouble = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', 'double')
+            // 1. Số ghế HỢP LỆ (Chỉ active và không tính lối đi)
+            // Ghế đôi (couple) đếm 2 ô là 1 chỗ
+            $validCoupleBlocks = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', 'couple')
                 ->where('status', 'active')
                 ->count();
             
-            $validOthers = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', '!=', 'double')
+            $validOtherSeats = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', '!=', 'couple')
                 ->where('status', 'active')
                 ->count();
 
-            $room->valid_seat_count = $validOthers + (int)($validDouble / 2);
+            $room->valid_seat_count = $validOtherSeats + (int)($validCoupleBlocks / 2);
 
-            // 2. Tính TỔNG SỐ GHẾ trong sơ đồ (Bao gồm cả ghế hư, không tính lối đi, ghế đôi = 1)
-            $totalDouble = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', 'double')
+            // 2. TỔNG SỐ GHẾ (Tất cả status, không tính lối đi)
+            $totalCoupleBlocks = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', 'couple')
                 ->count();
             
-            $totalOthers = Seat::where('room_id', $room->room_id)
-                ->where('seat_type', '!=', 'double')
+            $totalOtherSeats = Seat::where('room_id', $room->room_id)
+                ->where('seat_type', '!=', 'couple')
                 ->count();
 
-            $room->total_seat_count = $totalOthers + (int)($totalDouble / 2);
+            $room->total_seat_count = $totalOtherSeats + (int)($totalCoupleBlocks / 2);
             
             return $room;
         });
@@ -114,10 +115,14 @@ class ManagerRoomController extends Controller
                 // ✅ BỎ QUA LỐI ĐI - không tạo ghế cho ô aisle
                 if ($type === 'aisle') continue;
 
-                if ($type === 'regular') $type = 'standard';
+                if ($type === 'regular' || $type === 'standard') $type = 'normal';
+                if ($type === 'double') $type = 'couple';
+
+                // Lấy status từ seat object nếu FE có gửi (ví dụ: 'broken'), mặc định là 'active'
+                $status = strtolower($seat['status'] ?? 'active');
 
                 $pairUuid = null;
-                if ($type === 'double') {
+                if ($type === 'couple') {
                     if (isset($rowPairUuids[$x])) {
                         // Đã được ghế kia đặt UUID từ vòng lặp trước
                         $pairUuid = $rowPairUuids[$x];
@@ -135,17 +140,17 @@ class ManagerRoomController extends Controller
                 $seatsToInsert[] = [
                     'room_id'    => $roomId,
                     'row_label'  => $rowLabel,
-                    'seat_number'=> $seatCounter, // ✅ Số tuần tự (A1, A2, A3...) - không bị lệch bởi aisle
+                    'seat_number'=> $seatCounter, 
                     'seat_type'  => $type,
-                    'grid_x'     => $x,           // Vẫn giữ vị trí grid để FE render đúng vị trí
+                    'grid_x'     => $x,           
                     'grid_y'     => $y,
                     'pair_uuid'  => $pairUuid,
-                    'status'     => 'active',
+                    'status'     => $status,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
 
-                $seatCounter++; // Mỗi ô = 1 hàng DB, tăng 1 liên tiếp
+                $seatCounter++; 
             }
         }
 
@@ -153,12 +158,10 @@ class ManagerRoomController extends Controller
             Seat::insert($seatsToInsert);
         }
 
-        // ✅ Tính capacity đúng:
-        // - Standard/VIP: mỗi ô = 1 chỗ ngồi
-        // - Double: 2 ô chung pair_uuid = 1 chỗ ngồi (ghế đôi)
-        $doubleCount = collect($seatsToInsert)->where('seat_type', 'double')->count();
-        $otherCount  = collect($seatsToInsert)->where('seat_type', '!=', 'double')->count();
-        $capacity    = $otherCount + (int)($doubleCount / 2);
+        // ✅ Tính capacity (chỉ ghế active, ghế đôi = 1)
+        $doubleActive = collect($seatsToInsert)->where('seat_type', 'couple')->where('status', 'active')->count();
+        $otherActive  = collect($seatsToInsert)->where('seat_type', '!=', 'couple')->where('status', 'active')->count();
+        $capacity    = $otherActive + (int)($doubleActive / 2);
 
         \Illuminate\Support\Facades\DB::table('rooms')
             ->where('room_id', $roomId)
