@@ -46,6 +46,10 @@ class ManagerShowtimeController extends Controller
                 return response()->json(['message' => 'Phim hoặc Phòng chiếu không tồn tại!'], 404);
             }
 
+            if ($room->status !== 'active') {
+                return response()->json(['message' => 'Không thể lên lịch cho phòng chiếu đang tạm ngưng hoặc bảo trì.'], 400);
+            }
+
             // Tính toán end_time tự động
             $duration = (int) ($movie->duration ?? 0);
             $startTime = Carbon::parse($data['show_date'] . ' ' . $data['start_time']);
@@ -126,6 +130,10 @@ class ManagerShowtimeController extends Controller
             $room = Room::find($roomId);
             if (!$movie || !$room) {
                 return response()->json(['message' => 'Phim hoặc Phòng chiếu không tồn tại.'], 404);
+            }
+
+            if ($room->status !== 'active') {
+                return response()->json(['message' => 'Không thể lên lịch cho phòng chiếu đang tạm ngưng hoặc bảo trì.'], 400);
             }
 
             $roomTypes = \App\Models\RoomType::all()->pluck('room_type_id', 'name');
