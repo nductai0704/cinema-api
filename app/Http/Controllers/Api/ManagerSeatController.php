@@ -103,41 +103,16 @@ class ManagerSeatController extends Controller
             ->where('cinema_id', $manager->cinema_id)
             ->firstOrFail();
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($room, $layout) {
-            // 1. Xóa tất cả ghế cũ của phòng này để làm mới theo sơ đồ mới
-            // Lưu ý: Chỉ nên làm việc này nếu rạp chưa có vé bán. Nếu có vé bán cần logic phức tạp hơn.
-            if ($room->tickets()->exists()) {
-                return response()->json(['message' => 'Không thể đổi sơ đồ vì rạp đã có vé được bán ra.'], 422);
-            }
+        // Sử dụng hàm sync chuẩn trong Model Room
+        $success = $room->syncSeatsFromLayout();
 
-            $room->seats()->delete();
+        if ($success === false && $room->showtimes()->whereHas('tickets')->exists()) {
+            return response()->json(['message' => 'Không thể đổi sơ đồ vì rạp đã có vé được bán ra.'], 422);
+        }
 
-            $createdSeats = [];
-            foreach ($layout->layout_data as $seat) {
-                // QUAN TRỌNG: Bỏ qua nếu là Lối đi (Aisle)
-                if (isset($seat['type']) && $seat['type'] === 'aisle') {
-                    continue;
-                }
-
-                $createdSeats[] = Seat::create([
-                    'room_id' => $room->room_id,
-                    'row_label' => $seat['label'] ? substr($seat['label'], 0, 1) : null, // A, B, C...
-                    'seat_number' => $seat['label'] ? (int)substr($seat['label'], 1) : 0, // 1, 2, 3...
-                    'seat_type' => $seat['type'] ?? 'regular',
-                    'grid_x' => $seat['col'],
-                    'grid_y' => $seat['row'],
-                    'pair_uuid' => $seat['pair'] ?? null,
-                    'status' => 'available'
-                ]);
-            }
-
-            // Cập nhật sức chứa của phòng dựa trên số ghế thật
-            $room->update(['capacity' => count($createdSeats)]);
-
-            return response()->json([
-                'message' => 'Đã đồng bộ sơ đồ thành công!',
-                'seats_count' => count($createdSeats)
-            ]);
-        });
+        return response()->json([
+            'message' => 'Đã đồng bộ sơ đồ thành công!',
+            'seats_count' => $room->seats()->count()
+        ]);
     }
 }
