@@ -175,6 +175,7 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('room-types', \App\Http\Controllers\Manager\ManagerRoomTypeController::class);
             Route::patch('room-types/{id}/status', [\App\Http\Controllers\Manager\ManagerRoomTypeController::class, 'toggleStatus']);
 
+            Route::post('showtimes/bulk', [\App\Http\Controllers\Manager\ManagerShowtimeController::class, 'bulkStore']);
             Route::apiResource('showtimes', \App\Http\Controllers\Manager\ManagerShowtimeController::class);
             Route::apiResource('staffs', \App\Http\Controllers\Manager\ManagerStaffController::class);
             Route::apiResource('seat-layouts', \App\Http\Controllers\Manager\ManagerSeatLayoutController::class);

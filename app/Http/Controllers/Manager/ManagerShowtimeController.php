@@ -91,4 +91,132 @@ class ManagerShowtimeController extends Controller
         $showtime = Showtime::with(['movie', 'room'])->findOrFail($id);
         return response()->json($showtime);
     }
+
+    /**
+     * POST /api/v1/manager/showtimes/bulk
+     * Tạo hàng loạt suất chiếu với kiểm tra xung đột thời gian.
+     */
+    public function bulkStore(Request $request)
+    {
+        try {
+            $request->validate([
+                'movie_id' => 'required|integer',
+                'room_id' => 'required|integer',
+                'show_date' => 'required|date_format:Y-m-d',
+                'ticket_price' => 'required|numeric|min:0',
+                'showtimes' => 'required|array|min:1',
+                'showtimes.*.start_time' => 'required|date_format:H:i',
+                'showtimes.*.end_time' => 'nullable|date_format:H:i',
+            ]);
+
+            $movieId = $request->movie_id;
+            $roomId = $request->room_id;
+            $showDate = $request->show_date;
+            $ticketPrice = $request->ticket_price;
+            $bulkShowtimes = $request->showtimes;
+
+            // 1. Kiểm tra phim và phòng
+            $movie = Movie::find($movieId);
+            $room = Room::find($roomId);
+            if (!$movie || !$room) {
+                return response()->json(['message' => 'Phim hoặc Phòng chiếu không tồn tại.'], 404);
+            }
+
+            $duration = (int) ($movie->duration ?? 0);
+            $cleaningTime = (int) config('cinema.cleaning_time_minutes', 15);
+
+            // Chuyển mảng input sang định dạng Carbon để dễ so sánh
+            $newSessions = [];
+            foreach ($bulkShowtimes as $idx => $st) {
+                $start = Carbon::parse("$showDate {$st['start_time']}");
+                
+                // Nếu FE không gửi end_time, tự tính dựa trên thời lượng phim
+                if (empty($st['end_time'])) {
+                    $end = $start->copy()->addMinutes($duration);
+                } else {
+                    $end = Carbon::parse("$showDate {$st['end_time']}");
+                }
+
+                $newSessions[] = [
+                    'start' => $start,
+                    'end' => $end,
+                    'label' => "{$st['start_time']} - " . $end->format('H:i'),
+                    'original_idx' => $idx
+                ];
+            }
+
+            // 2. Kiểm tra xung đột NỘI BỘ (trong chính danh sách gửi lên)
+            for ($i = 0; $i < count($newSessions); $i++) {
+                for ($j = $i + 1; $j < count($newSessions); $j++) {
+                    $a = $newSessions[$i];
+                    $b = $newSessions[$j];
+                    
+                    // Thêm thời gian dọn khi so sánh
+                    $aEndWithClean = $a['end']->copy()->addMinutes($cleaningTime);
+                    $bEndWithClean = $b['end']->copy()->addMinutes($cleaningTime);
+
+                    if ($a['start']->lt($bEndWithClean) && $aEndWithClean->gt($b['start'])) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "Xung đột nội bộ: Suất {$a['label']} và {$b['label']} bị chồng lấn (Cần {$cleaningTime}p dọn phòng)."
+                        ], 400);
+                    }
+                }
+            }
+
+            // 3. Kiểm tra xung đột với DATABASE
+            $existingShowtimes = Showtime::where('room_id', $roomId)
+                ->where('show_date', $showDate)
+                ->where('status', 'active')
+                ->get();
+
+            foreach ($newSessions as $new) {
+                $newStart = $new['start'];
+                $newEndWithClean = $new['end']->copy()->addMinutes($cleaningTime);
+
+                foreach ($existingShowtimes as $exist) {
+                    $existStart = $exist->start_date_time;
+                    $existEndWithClean = $exist->end_date_time->addMinutes($cleaningTime);
+
+                    if ($newStart->lt($existEndWithClean) && $newEndWithClean->gt($existStart)) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "Suất chiếu {$new['label']} bị xung đột với lịch đã có trong hệ thống."
+                        ], 400);
+                    }
+                }
+            }
+
+            // 4. Lưu dữ liệu (Database Transaction)
+            return \Illuminate\Support\Facades\DB::transaction(function () use ($movieId, $roomId, $showDate, $ticketPrice, $newSessions) {
+                $createdCount = 0;
+                $results = [];
+
+                foreach ($newSessions as $session) {
+                    $st = Showtime::create([
+                        'movie_id' => $movieId,
+                        'room_id' => $roomId,
+                        'show_date' => $showDate,
+                        'start_time' => $session['start']->format('H:i:s'),
+                        'end_time' => $session['end']->format('H:i:s'),
+                        'ticket_price' => $ticketPrice,
+                        'status' => 'active',
+                    ]);
+                    $results[] = $st;
+                    $createdCount++;
+                }
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Đã tạo thành công {$createdCount} suất chiếu.",
+                    'data' => $results
+                ], 201);
+            });
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['status' => 'error', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
 }
