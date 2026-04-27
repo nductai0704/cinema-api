@@ -53,12 +53,17 @@ class CustomerPublicController extends Controller
         $cinemas = Cinema::whereHas('rooms.showtimes', function ($query) use ($id, $now) {
             $query->where('movie_id', $id)
                   ->where('status', 'active');
-        })->with(['rooms.showtimes' => function ($query) use ($id, $now) {
-            $query->where('movie_id', $id)
-                  ->where('status', 'active')
-                  ->orderBy('show_date')
-                  ->orderBy('start_time');
-        }])->get();
+        })->with([
+            'rooms.showtimes' => function ($query) use ($id, $now) {
+                $query->where('movie_id', $id)
+                      ->where('status', 'active')
+                      ->orderBy('show_date')
+                      ->orderBy('start_time');
+            },
+            'rooms.showtimes.movie',
+            'rooms.showtimes.roomType',
+            'rooms.showtimes.room'
+        ])->get();
 
         $result = $cinemas->map(function ($cinema) use ($now) {
             // Lấy tất cả showtimes từ tất cả các phòng của rạp này
@@ -102,21 +107,26 @@ class CustomerPublicController extends Controller
                          ->where('start_time', '>', $now->toTimeString());
                   });
             });
-        })->with(['showtimes' => function ($query) use ($cinemaId, $now) {
-            $query->whereHas('room', function($q) use ($cinemaId) {
-                $q->where('cinema_id', $cinemaId);
-            })
-            ->where('status', 'active')
-            ->where(function($q) use ($now) {
-                $q->where('show_date', '>', $now->toDateString())
-                  ->orWhere(function($q2) use ($now) {
-                      $q2->where('show_date', $now->toDateString())
-                         ->where('start_time', '>', $now->toTimeString());
-                  });
-            })
-            ->orderBy('show_date')
-            ->orderBy('start_time');
-        }])->get();
+        })->with([
+            'showtimes' => function ($query) use ($cinemaId, $now) {
+                $query->whereHas('room', function($q) use ($cinemaId) {
+                    $q->where('cinema_id', $cinemaId);
+                })
+                ->where('status', 'active')
+                ->where(function($q) use ($now) {
+                    $q->where('show_date', '>', $now->toDateString())
+                      ->orWhere(function($q2) use ($now) {
+                          $q2->where('show_date', $now->toDateString())
+                             ->where('start_time', '>', $now->toTimeString());
+                      });
+                })
+                ->orderBy('show_date')
+                ->orderBy('start_time');
+            },
+            'showtimes.movie',
+            'showtimes.room',
+            'showtimes.roomType'
+        ])->get();
 
         $result = $movies->map(function ($movie) {
             return [
