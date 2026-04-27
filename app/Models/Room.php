@@ -23,6 +23,11 @@ class Room extends Model
         'status',
     ];
 
+    protected $appends = [
+        'valid_seat_count',
+        'total_seat_count',
+    ];
+
     public function seatLayout()
     {
         return $this->belongsTo(SeatLayout::class, 'seat_layout_id', 'layout_id');
@@ -46,6 +51,46 @@ class Room extends Model
     public function showtimes()
     {
         return $this->hasMany(Showtime::class, 'room_id', 'room_id');
+    }
+
+    /**
+     * Accessor: Số lượng ghế hiệu dụng (Ghế đôi = 1)
+     */
+    public function getValidSeatCountAttribute(): int
+    {
+        // Nếu chưa có ghế nào trong DB, trả về capacity mặc định
+        if (!$this->seats()->exists()) {
+            return (int) $this->capacity;
+        }
+
+        $activeCoupleBlocks = $this->seats()->whereIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
+        $activeOtherSeats = $this->seats()->whereNotIn('seat_type', ['couple', 'double'])->where('status', 'active')->count();
+
+        return $activeOtherSeats + (int)($activeCoupleBlocks / 2);
+    }
+
+    /**
+     * Accessor: Tổng số ô có thể đặt ghế (Ma trận - Lối đi)
+     */
+    public function getTotalSeatCountAttribute(): int
+    {
+        if ($this->seatLayout && !empty($this->seatLayout->layout_data)) {
+            $totalCells = 0;
+            $aisleCount = 0;
+            
+            foreach ($this->seatLayout->layout_data as $row) {
+                if (!isset($row['seats']) || !is_array($row['seats'])) continue;
+                foreach ($row['seats'] as $seat) {
+                    $totalCells++;
+                    if (isset($seat['type']) && strtolower($seat['type']) === 'aisle') {
+                        $aisleCount++;
+                    }
+                }
+            }
+            return $totalCells - $aisleCount;
+        }
+
+        return $this->seats()->count() ?: (int) $this->capacity;
     }
 
     public function hasFutureShowtimes(): bool
