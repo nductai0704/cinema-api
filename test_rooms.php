@@ -1,0 +1,7 @@
+<?php
+require 'vendor/autoload.php';
+$app = require_once 'bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+
+print_r(App\Models\Room::all(['room_id', 'room_name', 'seat_layout_id'])->toArray());

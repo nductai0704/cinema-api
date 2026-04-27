@@ -12,13 +12,19 @@ use App\Http\Resources\ManagerShowtimeResource;
 
 class ManagerShowtimeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Tự động lọc showtimes theo Cinema của Manager
-        $showtimes = Showtime::with(['movie.genres', 'room.roomType', 'roomType'])
-            ->orderBy('show_date')
+        $query = Showtime::with(['movie.genres', 'room.roomType', 'roomType'])
+            ->withCount('tickets');
+
+        if ($request->has('date')) {
+            $query->where('show_date', $request->date);
+        }
+
+        $showtimes = $query->orderBy('show_date')
             ->orderBy('start_time')
-            ->paginate(20);
+            ->get();
             
         return ManagerShowtimeResource::collection($showtimes);
     }

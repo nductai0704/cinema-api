@@ -25,6 +25,10 @@ class ManagerShowtimeResource extends JsonResource
             'status' => $this->status,
             'display_status' => $this->display_status,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'seats' => $this->room?->capacity,
+            'valid_seat_count' => $this->room?->valid_seat_count,
+            'total_seat_count' => $this->room?->total_seat_count,
+            'tickets_sold' => $this->tickets_count ?? $this->tickets()->count(),
         ];
     }
 
