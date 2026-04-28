@@ -65,7 +65,7 @@ class SeatHoldController extends Controller
                 'seat_id' => $seatId,
                 'user_id' => $request->user()->user_id,
                 'hold_time' => now(),
-                'expired_time' => now()->addMinutes(15),
+                'expired_time' => now()->addMinutes(7),
                 'status' => 'active',
             ]);
         }
