@@ -184,7 +184,7 @@ class CustomerPublicController extends Controller
         // 3. Seats that are held for this showtime
         $heldSeatLabels = \App\Models\SeatHold::where('showtime_id', $showtimeId)
             ->where('expired_time', '>', now())
-            ->where('status', 'held')
+            ->where('status', 'active')
             ->with('seat')
             ->get()
             ->map(function ($hold) {
