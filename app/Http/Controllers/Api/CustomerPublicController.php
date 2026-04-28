@@ -155,6 +155,74 @@ class CustomerPublicController extends Controller
         return \App\Http\Resources\RegionResource::collection($regions);
     }
 
+    public function getShowtimeDetails($showtimeId)
+    {
+        $showtime = Showtime::with([
+            'movie',
+            'room.cinema',
+            'room.roomType',
+            'room.seatLayout'
+        ])->findOrFail($showtimeId);
+
+        // 1. Seats that are physically broken/inactive in the room
+        $brokenSeatLabels = \App\Models\Seat::where('room_id', $showtime->room_id)
+            ->where('status', '!=', 'active')
+            ->get()
+            ->map(function ($seat) {
+                return $seat->row_label . $seat->seat_number;
+            })->toArray();
+
+        // 2. Seats that are sold for this showtime
+        $soldSeatLabels = \App\Models\Ticket::where('showtime_id', $showtimeId)
+            ->where('status', '!=', 'cancelled')
+            ->with('seat')
+            ->get()
+            ->map(function ($ticket) {
+                return $ticket->seat ? ($ticket->seat->row_label . $ticket->seat->seat_number) : null;
+            })->filter()->toArray();
+
+        // 3. Seats that are held for this showtime
+        $heldSeatLabels = \App\Models\SeatHold::where('showtime_id', $showtimeId)
+            ->where('expired_time', '>', now())
+            ->where('status', 'held')
+            ->with('seat')
+            ->get()
+            ->map(function ($hold) {
+                return $hold->seat ? ($hold->seat->row_label . $hold->seat->seat_number) : null;
+            })->filter()->toArray();
+
+        // Merge all unavailable seats into one array of string IDs (e.g., ['A1', 'A2'])
+        $unavailableSeats = array_values(array_unique(array_merge($brokenSeatLabels, $soldSeatLabels, $heldSeatLabels)));
+
+        $data = [
+            'showtime_id' => $showtime->showtime_id,
+            'start_time' => \Carbon\Carbon::parse($showtime->start_time)->format('H:i'),
+            'show_date' => $showtime->show_date ? $showtime->show_date->format('Y-m-d') : null,
+            'price_standard' => (float)$showtime->price_standard,
+            'price_vip' => (float)$showtime->price_vip,
+            'price_double' => (float)$showtime->price_double,
+            'movie' => [
+                'title' => $showtime->movie ? $showtime->movie->title : null,
+                'poster_url' => $showtime->movie ? $showtime->movie->poster_url : null,
+            ],
+            'room' => [
+                'room_name' => $showtime->room ? $showtime->room->room_name : null,
+                'room_type' => [
+                    'name' => ($showtime->room && $showtime->room->roomType) ? $showtime->room->roomType->name : null
+                ],
+                'cinema' => [
+                    'cinema_name' => ($showtime->room && $showtime->room->cinema) ? $showtime->room->cinema->cinema_name : null
+                ],
+                'seat_layout' => [
+                    'layout_data' => ($showtime->room && $showtime->room->seatLayout) ? $showtime->room->seatLayout->layout_data : []
+                ]
+            ],
+            'sold_seats' => $unavailableSeats
+        ];
+
+        return response()->json(['data' => $data]);
+    }
+
     public function getRoomLayout($showtimeId)
     {
         $showtime = Showtime::with('room')->findOrFail($showtimeId);

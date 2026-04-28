@@ -114,6 +114,7 @@ Route::prefix('v1')->group(function () {
     Route::get('movies', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getMovies']);
     Route::get('movies/{id}', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getMovieDetail']);
     Route::get('movies/{id}/showtimes', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getShowtimesByMovie']);
+    Route::get('showtimes/{id}', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getShowtimeDetails']);
     Route::get('showtimes/{id}/layout', [\App\Http\Controllers\Api\CustomerPublicController::class, 'getRoomLayout']);
 
     Route::get('cinemas', [CinemaController::class, 'index']);
