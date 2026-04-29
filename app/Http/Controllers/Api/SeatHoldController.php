@@ -41,10 +41,14 @@ class SeatHoldController extends Controller
         // Chuyển đổi seat_labels thành seat_ids nếu cần
         if ($request->has('seat_labels')) {
             $allSeatsInRoom = \App\Models\Seat::where('room_id', $showtime->room_id)->get();
-            $seatIds = $allSeatsInRoom->filter(function($seat) use ($request) {
+            $inputLabels = array_map(function($l) { return strtoupper(trim((string)$l)); }, $request->seat_labels);
+            
+            $seatIds = $allSeatsInRoom->filter(function($seat) use ($inputLabels) {
                 $currentLabel = strtoupper(trim($seat->row_label . $seat->seat_number));
-                $targetLabels = array_map(function($l) { return strtoupper(trim($l)); }, $request->seat_labels);
-                return in_array($currentLabel, $targetLabels);
+                $currentId = (string)$seat->seat_id;
+                
+                // Chấp nhận nếu input khớp với Label (A4) HOẶC khớp với ID (747)
+                return in_array($currentLabel, $inputLabels) || in_array($currentId, $inputLabels);
             })
             ->pluck('seat_id')
             ->toArray();
