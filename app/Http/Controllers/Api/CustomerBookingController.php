@@ -69,7 +69,7 @@ class CustomerBookingController extends Controller
                     ->delete();
 
             $holds = [];
-            $expiresAt = now()->addMinutes(5);
+            $expiresAt = now()->addMinutes(7);
 
             foreach ($seatIds as $id) {
                 $holds[] = [
@@ -97,7 +97,7 @@ class CustomerBookingController extends Controller
             }
 
             return response()->json([
-                'message' => 'Giữ ghế thành công! Bạn có 5 phút để hoàn tất đặt vé.',
+                'message' => 'Giữ ghế thành công! Bạn có 7 phút để hoàn tất đặt vé.',
                 'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
                 'seat_ids' => $seatIds
             ]);
