@@ -133,6 +133,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('showtimes/{showtime_id}/holds', [SeatHoldController::class, 'store']);
         Route::get('showtimes/{showtime_id}/holds', [SeatHoldController::class, 'index']);
+        Route::delete('showtimes/{showtime_id}/holds', [SeatHoldController::class, 'bulkDestroy']);
         Route::delete('holds/{hold_id}', [SeatHoldController::class, 'destroy']);
 
         Route::get('users/me/bookings', [BookingController::class, 'userBookings']);

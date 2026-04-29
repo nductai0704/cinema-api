@@ -28,13 +28,27 @@ class SeatHoldController extends Controller
 
     public function store(Request $request, int $showtime_id)
     {
-        $data = $request->validate([
-            'seat_ids' => 'required|array|min:1',
-            'seat_ids.*' => 'required|integer|exists:seats,seat_id',
+        $request->validate([
+            'seat_ids' => 'required_without:seat_labels|array',
+            'seat_labels' => 'required_without:seat_ids|array',
         ]);
 
         $showtime = Showtime::findOrFail($showtime_id);
-        $seatIds = array_unique($data['seat_ids']);
+        
+        // Chuyển đổi seat_labels thành seat_ids nếu cần
+        if ($request->has('seat_labels')) {
+            $seatIds = \App\Models\Seat::where('room_id', $showtime->room_id)
+                ->get()
+                ->filter(function($seat) use ($request) {
+                    return in_array($seat->row_label . $seat->seat_number, $request->seat_labels);
+                })
+                ->pluck('seat_id')
+                ->toArray();
+        } else {
+            $seatIds = $request->seat_ids;
+        }
+
+        $seatIds = array_unique($seatIds);
 
         $existingBooked = Ticket::where('showtime_id', $showtime->showtime_id)
             ->whereIn('seat_id', $seatIds)
@@ -81,6 +95,50 @@ class SeatHoldController extends Controller
         }
 
         return response()->json($holds, 201);
+    }
+
+    /**
+     * Hủy giữ ghế hàng loạt cho một suất chiếu
+     */
+    public function bulkDestroy(Request $request, int $showtime_id)
+    {
+        $request->validate([
+            'seat_ids' => 'required_without:seat_labels|array',
+            'seat_labels' => 'required_without:seat_ids|array',
+        ]);
+
+        $showtime = Showtime::findOrFail($showtime_id);
+        
+        if ($request->has('seat_labels')) {
+            $seatIds = \App\Models\Seat::where('room_id', $showtime->room_id)
+                ->get()
+                ->filter(function($seat) use ($request) {
+                    return in_array($seat->row_label . $seat->seat_number, $request->seat_labels);
+                })
+                ->pluck('seat_id')
+                ->toArray();
+        } else {
+            $seatIds = $request->seat_ids;
+        }
+
+        $holds = SeatHold::where('showtime_id', $showtime_id)
+                        ->where('user_id', $request->user()->user_id)
+                        ->whereIn('seat_id', $seatIds)
+                        ->get();
+
+        foreach ($holds as $hold) {
+            $seat = \App\Models\Seat::find($hold->seat_id);
+            event(new \App\Events\SeatStatusChanged(
+                $showtime_id,
+                $hold->seat_id,
+                'released',
+                null,
+                $seat ? ($seat->row_label . $seat->seat_number) : null
+            ));
+            $hold->delete();
+        }
+
+        return response()->json(['message' => 'Đã giải phóng ghế.']);
     }
 
     public function destroy(Request $request, int $hold_id)
