@@ -37,16 +37,26 @@ class SeatHoldController extends Controller
         ]);
 
         $showtime = Showtime::findOrFail($showtime_id);
-        
+
         // Chuyển đổi seat_labels thành seat_ids nếu cần
         if ($request->has('seat_labels')) {
-            $seatIds = \App\Models\Seat::where('room_id', $showtime->room_id)
-                ->get()
-                ->filter(function($seat) use ($request) {
-                    return in_array($seat->row_label . $seat->seat_number, $request->seat_labels);
-                })
-                ->pluck('seat_id')
-                ->toArray();
+            $allSeatsInRoom = \App\Models\Seat::where('room_id', $showtime->room_id)->get();
+            $seatIds = $allSeatsInRoom->filter(function($seat) use ($request) {
+                $currentLabel = strtoupper(trim($seat->row_label . $seat->seat_number));
+                $targetLabels = array_map(function($l) { return strtoupper(trim($l)); }, $request->seat_labels);
+                return in_array($currentLabel, $targetLabels);
+            })
+            ->pluck('seat_id')
+            ->toArray();
+            
+            // Nếu gửi label lên mà không tìm thấy bất kỳ ghế nào khớp
+            if (empty($seatIds)) {
+                return response()->json([
+                    'message' => 'Không tìm thấy ghế tương ứng với các nhãn: ' . implode(', ', $request->seat_labels),
+                    'debug_room_id' => $showtime->room_id,
+                    'room_name' => $showtime->room?->room_name
+                ], 404);
+            }
         } else {
             $seatIds = $request->seat_ids;
         }
