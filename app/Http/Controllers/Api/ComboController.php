@@ -7,12 +7,34 @@ use App\Models\Combo;
 
 class ComboController extends Controller
 {
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
+        $cinemaId = $request->query('cinema_id');
+        
         $combos = Combo::where('status', 'active')
             ->orderBy('combo_name')
             ->get();
 
-        return response()->json($combos);
+        // Nếu có truyền cinema_id, chúng ta sẽ map giá tiền theo rạp đó
+        if ($cinemaId) {
+            $localSettings = \App\Models\CinemaCombo::where('cinema_id', $cinemaId)
+                ->get()
+                ->keyBy('combo_id');
+
+            $combos = $combos->map(function ($combo) use ($localSettings) {
+                $local = $localSettings->get($combo->combo_id);
+                
+                // Nếu rạp đã tắt combo này (inactive), chúng ta đánh dấu để FE ẩn đi
+                if ($local && $local->status === 'inactive') {
+                    return null;
+                }
+
+                // Gán giá thực tế cho rạp đó
+                $combo->price = $local ? $local->price : $combo->price;
+                return $combo;
+            })->filter(); // Loại bỏ những combo bị ẩn
+        }
+
+        return response()->json($combos->values());
     }
 }
