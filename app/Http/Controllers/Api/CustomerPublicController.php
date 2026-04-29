@@ -179,7 +179,10 @@ class CustomerPublicController extends Controller
 
         // 3. Seats that are held for this showtime
         $holds = \App\Models\SeatHold::where('showtime_id', $showtimeId)
-            ->where('expired_time', '>', now())
+            ->where(function($q) {
+                $q->where('expired_time', '>', now()->subMinutes(10))
+                  ->orWhereNull('expired_time');
+            })
             ->whereIn('status', ['active', 'held']) // Chấp nhận cả 2 status cho chắc
             ->with('seat')
             ->get();

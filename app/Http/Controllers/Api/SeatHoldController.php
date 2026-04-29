@@ -14,11 +14,14 @@ class SeatHoldController extends Controller
     {
         $showtime = Showtime::findOrFail($showtime_id);
 
+        // Lấy tất cả các bản ghi giữ ghế của suất chiếu này mà chưa bị xóa (status != cancelled)
+        // Và thời gian hết hạn phải lớn hơn hiện tại (có trừ hao 1 chút để bù đắp lệch múi giờ)
         $holds = SeatHold::where('showtime_id', $showtime->showtime_id)
-            ->whereIn('status', ['active', 'held'])
+            ->whereIn('status', ['active', 'held', 'hold']) // Bao phủ mọi trường hợp status
             ->where(function ($query) {
-                $query->whereNull('expired_time')
-                    ->orWhere('expired_time', '>', now());
+                // Nới lỏng thời gian thêm 10 phút để bù đắp lệch múi giờ server
+                $query->where('expired_time', '>', now()->subMinutes(10))
+                      ->orWhereNull('expired_time');
             })
             ->with('user')
             ->get();
