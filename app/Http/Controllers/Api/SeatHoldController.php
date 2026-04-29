@@ -53,8 +53,14 @@ class SeatHoldController extends Controller
             if (empty($seatIds)) {
                 return response()->json([
                     'message' => 'Không tìm thấy ghế tương ứng với các nhãn: ' . implode(', ', $request->seat_labels),
-                    'debug_room_id' => $showtime->room_id,
-                    'room_name' => $showtime->room?->room_name
+                    'debug' => [
+                        'room_id' => $showtime->room_id,
+                        'room_name' => $showtime->room?->room_name,
+                        'received_labels' => $request->seat_labels,
+                        'available_seats_in_room' => $allSeatsInRoom->map(function($s) {
+                            return $s->row_label . $s->seat_number;
+                        })->take(20)->toArray() // Trả về 20 nhãn đầu tiên để kiểm tra định dạng
+                    ]
                 ], 404);
             }
         } else {
