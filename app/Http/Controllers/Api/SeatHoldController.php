@@ -68,6 +68,8 @@ class SeatHoldController extends Controller
                 'expired_time' => now()->addMinutes(7),
                 'status' => 'active',
             ]);
+
+            event(new \App\Events\SeatStatusChanged($showtime->showtime_id, $seatId, 'held', $request->user()->user_id));
         }
 
         return response()->json($holds, 201);
@@ -83,6 +85,8 @@ class SeatHoldController extends Controller
 
         $hold->status = 'cancelled';
         $hold->save();
+
+        event(new \App\Events\SeatStatusChanged($hold->showtime_id, $hold->seat_id, 'released'));
 
         return response()->json(['message' => 'Giữ ghế đã được hủy.']);
     }

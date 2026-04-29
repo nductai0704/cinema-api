@@ -84,6 +84,10 @@ class CustomerBookingController extends Controller
 
             SeatHold::insert($holds);
 
+            foreach ($seatIds as $id) {
+                event(new \App\Events\SeatStatusChanged($showtimeId, $id, 'held', $user->user_id));
+            }
+
             return response()->json([
                 'message' => 'Giữ ghế thành công! Bạn có 5 phút để hoàn tất đặt vé.',
                 'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
@@ -225,6 +229,10 @@ class CustomerBookingController extends Controller
             SeatHold::where('showtime_id', $showtimeId)
                     ->whereIn('seat_id', $ticketSeatIds)
                     ->delete();
+
+            foreach ($ticketSeatIds as $id) {
+                event(new \App\Events\SeatStatusChanged($showtimeId, $id, 'sold', $booking->user_id));
+            }
 
             // ✅ GỬI EMAIL VÉ KÈM MÃ QR (CHẠY NGẦM)
             try {
