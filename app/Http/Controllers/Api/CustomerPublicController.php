@@ -177,19 +177,11 @@ class CustomerPublicController extends Controller
             ->get();
         $soldData = $tickets->map(fn($t) => $t->seat_id)->concat($tickets->map(fn($t) => $t->seat ? ($t->seat->row_label . $t->seat->seat_number) : null))->filter()->toArray();
 
-        // 3. Seats that are held for this showtime
-        $holds = \App\Models\SeatHold::where('showtime_id', $showtimeId)
-            ->where(function($q) {
-                $q->where('expired_time', '>', now()->subMinutes(10))
-                  ->orWhereNull('expired_time');
-            })
-            ->whereIn('status', ['active', 'held']) // Chấp nhận cả 2 status cho chắc
-            ->with('seat')
-            ->get();
-        $heldData = $holds->map(fn($h) => $h->seat_id)->concat($holds->map(fn($h) => $h->seat ? ($h->seat->row_label . $h->seat->seat_number) : null))->filter()->toArray();
-
-        // Merge all into one flat array of (IDs and Labels)
-        $unavailableSeats = array_values(array_unique(array_merge($brokenData, $soldData, $heldData)));
+        // 3. (Optional Debug) Seats that are held for this showtime - NO LONGER included in sold_seats
+        // FE will now call /holds API to get these and color them YELLOW
+        
+        // Final merged array now ONLY contains Broken and Sold seats (Color: Gray)
+        $unavailableSeats = array_values(array_unique(array_merge($brokenData, $soldData)));
 
         $data = [
             'showtime_id' => $showtime->showtime_id,
