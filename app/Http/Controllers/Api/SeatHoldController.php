@@ -15,7 +15,7 @@ class SeatHoldController extends Controller
         $showtime = Showtime::findOrFail($showtime_id);
 
         $holds = SeatHold::where('showtime_id', $showtime->showtime_id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'held'])
             ->where(function ($query) {
                 $query->whereNull('expired_time')
                     ->orWhere('expired_time', '>', now());

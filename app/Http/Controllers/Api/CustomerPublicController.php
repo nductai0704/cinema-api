@@ -165,34 +165,28 @@ class CustomerPublicController extends Controller
         ])->findOrFail($showtimeId);
 
         // 1. Seats that are physically broken/inactive in the room
-        $brokenSeatLabels = \App\Models\Seat::where('room_id', $showtime->room_id)
+        $brokenSeats = \App\Models\Seat::where('room_id', $showtime->room_id)
             ->where('status', '!=', 'active')
-            ->get()
-            ->map(function ($seat) {
-                return $seat->row_label . $seat->seat_number;
-            })->toArray();
+            ->get();
+        $brokenData = $brokenSeats->pluck('seat_id')->concat($brokenSeats->map(fn($s) => $s->row_label . $s->seat_number))->toArray();
 
         // 2. Seats that are sold for this showtime
-        $soldSeatLabels = \App\Models\Ticket::where('showtime_id', $showtimeId)
+        $tickets = \App\Models\Ticket::where('showtime_id', $showtimeId)
             ->where('status', '!=', 'cancelled')
             ->with('seat')
-            ->get()
-            ->map(function ($ticket) {
-                return $ticket->seat ? ($ticket->seat->row_label . $ticket->seat->seat_number) : null;
-            })->filter()->toArray();
+            ->get();
+        $soldData = $tickets->map(fn($t) => $t->seat_id)->concat($tickets->map(fn($t) => $t->seat ? ($t->seat->row_label . $t->seat->seat_number) : null))->filter()->toArray();
 
         // 3. Seats that are held for this showtime
-        $heldSeatLabels = \App\Models\SeatHold::where('showtime_id', $showtimeId)
+        $holds = \App\Models\SeatHold::where('showtime_id', $showtimeId)
             ->where('expired_time', '>', now())
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'held']) // Chấp nhận cả 2 status cho chắc
             ->with('seat')
-            ->get()
-            ->map(function ($hold) {
-                return $hold->seat ? ($hold->seat->row_label . $hold->seat->seat_number) : null;
-            })->filter()->toArray();
+            ->get();
+        $heldData = $holds->map(fn($h) => $h->seat_id)->concat($holds->map(fn($h) => $h->seat ? ($h->seat->row_label . $h->seat->seat_number) : null))->filter()->toArray();
 
-        // Merge all unavailable seats into one array of string IDs (e.g., ['A1', 'A2'])
-        $unavailableSeats = array_values(array_unique(array_merge($brokenSeatLabels, $soldSeatLabels, $heldSeatLabels)));
+        // Merge all into one flat array of (IDs and Labels)
+        $unavailableSeats = array_values(array_unique(array_merge($brokenData, $soldData, $heldData)));
 
         $data = [
             'showtime_id' => $showtime->showtime_id,
