@@ -1,0 +1,50 @@
+# Kế hoạch Triển khai Real-time Socket (WebSockets) cho Sơ đồ ghế
+
+Hiện tại, hệ thống đặt vé đang chạy theo cơ chế "Pull" (tức là Frontend chủ động hỏi Backend và chỉ biết ghế bị mua/giữ khi F5 trang). Việc tích hợp WebSocket sẽ biến nó thành cơ chế "Push" (Backend chủ động thông báo cho tất cả người dùng ngay trong tích tắc khi một chiếc ghế đổi màu).
+
+Vì Project của bạn đang chạy **Laravel (phiên bản mới nhất)**, công cụ xịn và mượt nhất hiện nay là **Laravel Reverb** (nội bộ, miễn phí, không cần mua dịch vụ bên thứ 3 như Pusher).
+
+## BƯỚC 1: CAI ĐẶT BACKEND (Laravel Reverb)
+1. **Cài đặt & Cấu hình Reverb:**
+   - Chạy lệnh cài đặt nguyên bản: `php artisan install:broadcasting`.
+   - Lệnh này sẽ tự động setup Laravel Reverb và Laravel Echo. Bật service Reverb lên chạy ngầm trên Railway.
+
+2. **Khởi tạo Events (Sự kiện):**
+   - Viết một Event tên là `SeatStatusChanged`.
+   - Event này gắn liền với một Kênh Public (Channel) tên là `showtime.{showtime_id}`.
+   - Bất cứ khi nào con Controller `SeatHoldController` (Khi có người bấm Tiếp tục) hoặc `CustomerBookingController` (Khi thanh toán thành công) chạy, ta sẽ Bắn event này ra.
+   - _Dữ liệu bắn ra:_ `[ "seat_id" => "A1", "status" => "held", "user_id" => 99 ]`
+
+## BƯỚC 2: CẬP NHẬT FRONTEND (React)
+1. **Cài đặt thư viện bắt sóng:**
+   - Cài `laravel-echo` và `pusher-js` vào React (Reverb sử dụng chung giao thức với Pusher nên cấu hình rất dễ).
+   
+2. **Lắng nghe Kênh (Subscribe Channel) tại `SeatMap`:**
+   - Trong `useEffect` của trang Đặt Ghế, kết nối tới Socket Server:
+   ```javascript
+   useEffect(() => {
+       // Lắng nghe kênh của đúng cái Suất chiếu hiện tại
+       const channel = window.Echo.channel(`showtime.${showtimeId}`);
+       
+       channel.listen('SeatStatusChanged', (e) => {
+           // e.seat_id: "A1", e.status: "held"
+           
+           if (e.status === 'held' || e.status === 'sold') {
+               // Logic: Cập nhật state `soldSeats` để nó TỰ ĐỘNG ĐỎ LÊN ngay lập tức
+               // Báo alert nhò "Ghế A1 vừa bị người khác chọn!" nếu người dùng đang click vào ghế rỗng đó
+           } else if (e.status === 'released') {
+               // Logic: Hết giờ 7 phút, ghế nổ mốc nhả lại thành Trắng
+           }
+       });
+
+       return () => channel.unsubscribe();
+   }, []);
+   ```
+
+## ƯU ĐIỂM CỦA KIẾN TRÚC NÀY
+- **Cực kỳ trực quan:** 100 người mở trang `SeatMap` cùng lúc, 1 người click giữ ghế là 99 màn hình còn lại ghế đó lập tức chuyển màu Vàng/Đỏ ngay trước mắt. Không bao giờ có chuyện 2 người vào trang thanh toán cùng 1 bộ ghế.
+- **Tối ưu Server:** Màn hình khách hàng không cần gọi API quấy rầy Backend liên tục (Polling) để hỏi xem ghế nào mới bị mất.
+- **Miễn phí 100%:** Laravel Reverb tự host trên chung máy chủ (Railway) của bạn, không bị giới hạn 200,000 tin nhắn/ngày như xài dịch vụ Pusher ngoài.
+
+## TIẾP THEO CẦN LÀM GÌ
+Xây dựng Socket đòi hỏi phải cấu hình Infra (Cơ sở hạ tầng máy chủ Railway) mở thêm Port cho Reverb chạy. Bạn cần xác nhận xem gói máy chủ hiện tại có cho phép chạy thêm 1 service ngầm (Worker daemon) cho Reverb hay không, nếu OK mình sẽ tiến hành cài lệnh `install:broadcasting` nhé!
