@@ -14,16 +14,18 @@ class SeatStatusChanged implements ShouldBroadcastNow
 
     public $showtimeId;
     public $seatId;
+    public $seatName;
     public $status;
     public $userId;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($showtimeId, $seatId, $status, $userId = null)
+    public function __construct($showtimeId, $seatId, $status, $userId = null, $seatName = null)
     {
         $this->showtimeId = $showtimeId;
         $this->seatId = $seatId;
+        $this->seatName = $seatName;
         $this->status = $status;
         $this->userId = $userId;
     }
@@ -55,6 +57,7 @@ class SeatStatusChanged implements ShouldBroadcastNow
     {
         return [
             'seat_id' => $this->seatId,
+            'seat_name' => $this->seatName,
             'status' => $this->status,
             'user_id' => $this->userId,
         ];

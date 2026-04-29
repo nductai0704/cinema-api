@@ -84,8 +84,16 @@ class CustomerBookingController extends Controller
 
             SeatHold::insert($holds);
 
+            $seats = \App\Models\Seat::whereIn('seat_id', $seatIds)->get()->keyBy('seat_id');
             foreach ($seatIds as $id) {
-                event(new \App\Events\SeatStatusChanged($showtimeId, $id, 'held', $user->user_id));
+                $seat = $seats->get($id);
+                event(new \App\Events\SeatStatusChanged(
+                    $showtimeId,
+                    $id,
+                    'held',
+                    $user->user_id,
+                    $seat ? ($seat->row_label . $seat->seat_number) : null
+                ));
             }
 
             return response()->json([
@@ -230,8 +238,16 @@ class CustomerBookingController extends Controller
                     ->whereIn('seat_id', $ticketSeatIds)
                     ->delete();
 
+            $seats = \App\Models\Seat::whereIn('seat_id', $ticketSeatIds)->get()->keyBy('seat_id');
             foreach ($ticketSeatIds as $id) {
-                event(new \App\Events\SeatStatusChanged($showtimeId, $id, 'sold', $booking->user_id));
+                $seat = $seats->get($id);
+                event(new \App\Events\SeatStatusChanged(
+                    $showtimeId,
+                    $id,
+                    'sold',
+                    $booking->user_id,
+                    $seat ? ($seat->row_label . $seat->seat_number) : null
+                ));
             }
 
             // ✅ GỬI EMAIL VÉ KÈM MÃ QR (CHẠY NGẦM)

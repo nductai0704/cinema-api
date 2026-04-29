@@ -58,8 +58,10 @@ class SeatHoldController extends Controller
             return response()->json(['message' => 'Một hoặc nhiều ghế đang bị giữ bởi khách khác.'], 422);
         }
 
+        $seats = \App\Models\Seat::whereIn('seat_id', $seatIds)->get()->keyBy('seat_id');
         $holds = [];
         foreach ($seatIds as $seatId) {
+            $seat = $seats->get($seatId);
             $holds[] = SeatHold::create([
                 'showtime_id' => $showtime->showtime_id,
                 'seat_id' => $seatId,
@@ -69,7 +71,13 @@ class SeatHoldController extends Controller
                 'status' => 'active',
             ]);
 
-            event(new \App\Events\SeatStatusChanged($showtime->showtime_id, $seatId, 'held', $request->user()->user_id));
+            event(new \App\Events\SeatStatusChanged(
+                $showtime->showtime_id,
+                $seatId,
+                'held',
+                $request->user()->user_id,
+                $seat ? ($seat->row_label . $seat->seat_number) : null
+            ));
         }
 
         return response()->json($holds, 201);
@@ -86,7 +94,14 @@ class SeatHoldController extends Controller
         $hold->status = 'cancelled';
         $hold->save();
 
-        event(new \App\Events\SeatStatusChanged($hold->showtime_id, $hold->seat_id, 'released'));
+        $seat = \App\Models\Seat::find($hold->seat_id);
+        event(new \App\Events\SeatStatusChanged(
+            $hold->showtime_id,
+            $hold->seat_id,
+            'released',
+            null,
+            $seat ? ($seat->row_label . $seat->seat_number) : null
+        ));
 
         return response()->json(['message' => 'Giữ ghế đã được hủy.']);
     }
