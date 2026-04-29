@@ -30,7 +30,7 @@ class SeatHoldController extends Controller
                 'showtime_id' => $hold->showtime_id,
                 'seat_id' => $hold->seat_id,
                 'seat_label' => $hold->seat ? ($hold->seat->row_label . $hold->seat->seat_number) : null,
-                'status' => $hold->status,
+                'status' => 'active', // Luôn trả về active để FE filter đúng
                 'expired_time' => $hold->expired_time
             ];
         });
