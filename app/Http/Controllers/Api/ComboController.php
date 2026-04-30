@@ -25,7 +25,7 @@ class ComboController extends Controller
             ->orderBy('combo_name')
             ->get();
 
-        // Nếu có truyền cinema_id, chúng ta sẽ map giá tiền theo rạp đó
+        // Nếu có truyền cinema_id, chúng ta sẽ map giá tiền và trạng thái theo rạp đó
         if ($cinemaId) {
             $localSettings = \App\Models\CinemaCombo::where('cinema_id', $cinemaId)
                 ->get()
@@ -34,15 +34,24 @@ class ComboController extends Controller
             $combos = $combos->map(function ($combo) use ($localSettings) {
                 $local = $localSettings->get($combo->combo_id);
                 
-                // Nếu rạp đã tắt combo này (inactive), chúng ta đánh dấu để FE ẩn đi
+                // 1. Kiểm tra trạng thái tại rạp: Nếu Manager tắt thì ẩn luôn
                 if ($local && $local->status === 'inactive') {
                     return null;
                 }
 
-                // Gán giá thực tế cho rạp đó
-                $combo->price = $local ? $local->price : $combo->price;
+                // 2. Bổ sung trường current_price để FE User dễ đọc (giống FE Manager)
+                $combo->current_price = $local ? $local->price : $combo->price;
+                
+                // 3. Đồng bộ lại trường price chính (để dự phòng)
+                $combo->price = $combo->current_price;
+
                 return $combo;
-            })->filter(); // Loại bỏ những combo bị ẩn
+            })->filter(); // Loại bỏ hoàn toàn các combo bị ẩn
+        } else {
+            // Nếu không có cinema_id, mặc định current_price là price gốc
+            $combos->each(function($c) {
+                $c->current_price = $c->price;
+            });
         }
 
         return response()->json($combos->values());
