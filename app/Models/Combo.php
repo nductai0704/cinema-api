@@ -30,9 +30,33 @@ class Combo extends Model
         'end_date' => 'date',
     ];
 
+    protected $appends = ['effective_status'];
+
     public function bookings()
     {
         return $this->hasMany(BookingCombo::class, 'combo_id', 'combo_id');
+    }
+
+    /**
+     * Tự động tính toán trạng thái dựa trên ngày tháng
+     */
+    public function getEffectiveStatusAttribute()
+    {
+        $now = now()->startOfDay();
+        
+        if ($this->status === 'inactive') {
+            return 'inactive';
+        }
+
+        if ($this->start_date && $now->lt($this->start_date->startOfDay())) {
+            return 'upcoming';
+        }
+
+        if ($this->end_date && $now->gt($this->end_date->endOfDay())) {
+            return 'expired';
+        }
+
+        return 'active';
     }
 
     /**
