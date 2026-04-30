@@ -19,7 +19,9 @@ class AdminComboController extends Controller
             'combo_name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
-            'target_audience' => 'nullable|string|max:255',
+            'target_audience' => 'nullable|integer',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'image_url' => 'nullable|url|max:255',
             'status' => 'nullable|string|max:50',
         ]);
@@ -44,7 +46,9 @@ class AdminComboController extends Controller
             'combo_name' => 'sometimes|required|string|max:255',
             'price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
-            'target_audience' => 'nullable|string|max:255',
+            'target_audience' => 'nullable|integer',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'image_url' => 'nullable|url|max:255',
             'status' => 'nullable|string|max:50',
         ]);

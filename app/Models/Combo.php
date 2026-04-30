@@ -18,12 +18,16 @@ class Combo extends Model
         'price',
         'description',
         'target_audience',
+        'start_date',
+        'end_date',
         'image_url',
         'status',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'start_date' => 'date',
+        'end_date' => 'date',
     ];
 
     public function bookings()

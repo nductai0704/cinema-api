@@ -29,6 +29,8 @@ class ManagerComboController extends Controller
                 'combo_name' => $combo->combo_name,
                 'description' => $combo->description,
                 'target_audience' => $combo->target_audience,
+                'start_date' => $combo->start_date ? $combo->start_date->toDateString() : null,
+                'end_date' => $combo->end_date ? $combo->end_date->toDateString() : null,
                 'image_url' => $combo->image_url,
                 'original_price' => $combo->price,
                 // Ưu tiên sử dụng setting của rạp, nếu không thì dùng mặc định

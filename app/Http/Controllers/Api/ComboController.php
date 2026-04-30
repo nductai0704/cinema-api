@@ -11,7 +11,17 @@ class ComboController extends Controller
     {
         $cinemaId = $request->query('cinema_id');
         
+        $now = now()->toDateString();
+        
         $combos = Combo::where('status', 'active')
+            ->where(function ($query) use ($now) {
+                $query->whereNull('start_date')
+                      ->orWhere('start_date', '<=', $now);
+            })
+            ->where(function ($query) use ($now) {
+                $query->whereNull('end_date')
+                      ->orWhere('end_date', '>=', $now);
+            })
             ->orderBy('combo_name')
             ->get();
 
