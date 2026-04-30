@@ -16,11 +16,19 @@ class ManagerComboController extends Controller
     public function index()
     {
         $cinemaId = Auth::user()->cinema_id;
+        $now = now()->toDateString();
         
-        $globalCombos = Combo::all();
+        // Manager chỉ quản lý những combo mà Admin đang cho phép và còn hạn
+        $globalCombos = Combo::where('status', 'active')
+            ->where(function ($query) use ($now) {
+                $query->whereNull('start_date')->orWhere('start_date', '<=', $now);
+            })
+            ->where(function ($query) use ($now) {
+                $query->whereNull('end_date')->orWhere('end_date', '>=', $now);
+            })
+            ->get();
         
-        // Nhờ BelongsToCinema Trait, tự động chỉ lấy CinemaCombo của rạp hiện tại
-        $localSettings = CinemaCombo::all()->keyBy('combo_id');
+        $localSettings = CinemaCombo::where('cinema_id', $cinemaId)->get()->keyBy('combo_id');
 
         $result = $globalCombos->map(function ($combo) use ($localSettings) {
             $local = $localSettings->get($combo->combo_id);
@@ -33,18 +41,16 @@ class ManagerComboController extends Controller
                 'end_date' => $combo->end_date ? $combo->end_date->toDateString() : null,
                 'image_url' => $combo->image_url,
                 'original_price' => $combo->price,
-                // Ưu tiên sử dụng setting của rạp, nếu không thì dùng mặc định
+                // Giá hiện tại tại rạp này
                 'current_price' => $local ? $local->price : $combo->price,
-                'status' => $local ? $local->status : 'active', // Combo mặc định là active
+                // Trạng thái bật/tắt tại rạp này
+                'status' => $local ? $local->status : 'active',
             ];
         });
 
         return response()->json($result);
     }
 
-    /**
-     * Tuỳ chỉnh giá hoặc trạng thái ẩn/hiện của Combo tại rạp của mình
-     */
     public function updateSetting(Request $request, $comboId)
     {
         $data = $request->validate([
@@ -54,16 +60,20 @@ class ManagerComboController extends Controller
 
         $cinemaId = Auth::user()->cinema_id;
 
-        // Cập nhật hoặc tạo mới bản ghi custom cho rạp (upsert)
-        // cinema_id sẽ được Trait tự gán nếu là create
-        $cinemaCombo = CinemaCombo::updateOrCreate(
-            ['combo_id' => $comboId, 'cinema_id' => $cinemaId], // Điều kiện tìm kiếm
-            ['price' => $data['price'], 'status' => $data['status']] // Dữ liệu cập nhật
+        // Sử dụng updateOrInsert để bỏ qua các ràng buộc Global Scope nếu có, đảm bảo lưu được 100%
+        \Illuminate\Support\Facades\DB::table('cinema_combos')->updateOrInsert(
+            ['combo_id' => $comboId, 'cinema_id' => $cinemaId],
+            [
+                'price' => $data['price'], 
+                'status' => $data['status'],
+                'updated_at' => now()
+            ]
         );
 
         return response()->json([
-            'message' => 'Cập nhật thiết lập Combo thành công!',
-            'data' => $cinemaCombo
+            'message' => 'Cập nhật giá và trạng thái cho rạp thành công!',
+            'cinema_id' => $cinemaId,
+            'combo_id' => $comboId
         ]);
     }
 }
