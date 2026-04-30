@@ -34,4 +34,12 @@ class Combo extends Model
     {
         return $this->hasMany(BookingCombo::class, 'combo_id', 'combo_id');
     }
+
+    /**
+     * Ép định dạng ngày tháng khi trả về JSON để tránh lỗi lệch múi giờ ở Frontend
+     */
+    protected function serializeDate(\DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d');
+    }
 }
