@@ -200,6 +200,7 @@ class CustomerPublicController extends Controller
                     'name' => ($showtime->room && $showtime->room->roomType) ? $showtime->room->roomType->name : null
                 ],
                 'cinema' => [
+                    'cinema_id' => ($showtime->room && $showtime->room->cinema) ? $showtime->room->cinema->cinema_id : null,
                     'cinema_name' => ($showtime->room && $showtime->room->cinema) ? $showtime->room->cinema->cinema_name : null
                 ],
                 'seat_layout' => [
