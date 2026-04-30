@@ -61,6 +61,17 @@ Route::prefix('v1')->group(function () {
                 $output .= "<b>3. regions.status:</b> ĐÃ TẠO MỚI.<br>";
             }
 
+            // 4. KIỂM TRA CÁC CỘT MỚI TRONG BẢNG COMBOS (PHỤC VỤ GIỮ GHẾ/COMBO)
+            $comboCols = ['start_date' => 'DATE NULL', 'end_date' => 'DATE NULL', 'target_audience' => 'VARCHAR(255) NULL'];
+            foreach ($comboCols as $col => $type) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('combos', $col)) {
+                    $output .= "<b>Combo.{$col}:</b> ĐÃ TỒN TẠI.<br>";
+                } else {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE combos ADD {$col} {$type} AFTER description");
+                    $output .= "<b>Combo.{$col}:</b> ĐÃ TẠO MỚI.<br>";
+                }
+            }
+
             // 4. Kiểm tra bảng room_types
             if (\Illuminate\Support\Facades\Schema::hasTable('room_types')) {
                 $output .= "<b>4. room_types table:</b> ĐÃ TỒN TẠI.<br>";
