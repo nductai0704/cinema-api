@@ -30,7 +30,12 @@ class Combo extends Model
         'end_date' => 'date',
     ];
 
-    protected $appends = ['effective_status'];
+    protected $appends = ['effective_status', 'current_price'];
+
+    public function getCurrentPriceAttribute()
+    {
+        return $this->attributes['current_price'] ?? $this->price;
+    }
 
     public function bookings()
     {

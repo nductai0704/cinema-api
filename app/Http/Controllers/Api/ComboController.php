@@ -34,23 +34,27 @@ class ComboController extends Controller
             $combos = $combos->map(function ($combo) use ($localSettings) {
                 $local = $localSettings->get($combo->combo_id);
                 
-                // 1. Kiểm tra trạng thái tại rạp: Nếu Manager tắt thì ẩn luôn
+                // 1. Nếu Manager rạp này đã tắt combo này (inactive), 
+                // chúng ta ép effective_status thành 'inactive' để FE lọc bỏ
                 if ($local && $local->status === 'inactive') {
-                    return null;
+                    $combo->status = 'inactive';
+                    $combo->effective_status = 'inactive';
+                    return null; // Ẩn luôn khỏi danh sách trả về
                 }
 
-                // 2. Bổ sung trường current_price để FE User dễ đọc (giống FE Manager)
-                $combo->current_price = $local ? $local->price : $combo->price;
+                // 2. Ép giá bán thực tế của rạp vào cả 2 trường để FE chắc chắn đọc được
+                $actualPrice = $local ? $local->price : $combo->price;
                 
-                // 3. Đồng bộ lại trường price chính (để dự phòng)
-                $combo->price = $combo->current_price;
+                // Sử dụng setAttribute và append để đảm bảo Laravel đưa vào JSON
+                $combo->setAttribute('current_price', $actualPrice);
+                $combo->setAttribute('price', $actualPrice);
 
                 return $combo;
             })->filter(); // Loại bỏ hoàn toàn các combo bị ẩn
         } else {
-            // Nếu không có cinema_id, mặc định current_price là price gốc
+            // Dự phòng: Nếu không có cinema_id, giá hiện tại bằng giá gốc
             $combos->each(function($c) {
-                $c->current_price = $c->price;
+                $c->setAttribute('current_price', $c->price);
             });
         }
 
