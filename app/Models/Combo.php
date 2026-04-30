@@ -17,6 +17,7 @@ class Combo extends Model
         'combo_name',
         'price',
         'description',
+        'target_audience',
         'image_url',
         'status',
     ];

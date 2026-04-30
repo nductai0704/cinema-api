@@ -28,6 +28,7 @@ class ManagerComboController extends Controller
                 'combo_id' => $combo->combo_id,
                 'combo_name' => $combo->combo_name,
                 'description' => $combo->description,
+                'target_audience' => $combo->target_audience,
                 'image_url' => $combo->image_url,
                 'original_price' => $combo->price,
                 // Ưu tiên sử dụng setting của rạp, nếu không thì dùng mặc định
